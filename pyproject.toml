@@ -1,38 +1,48 @@
-[build-system]
-requires = ["hatchling", "hatch-vcs"]
-build-backend = "hatchling.build"
-
-[tool.hatch.version]
-source = "vcs"
-
-[tool.hatch.build.hooks.vcs]
-version-file = "claude_code_proxy/_version.py"
-
-[tool.hatch.build.targets.wheel]
-packages = ["claude_code_proxy"]
-
 [project]
-name = "claude-code-proxy-api"
-version = "0.1.0"
+name = "ccproxy"
+# version = "0.1.0"
+dynamic = ["version"]
 description = "API server that provides an Anthropic and OpenAI compatible interface over Claude Code, allowing to use your Claude OAuth account or over the API."
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-  "anthropic>=0.57.1",
-  "claude-code-sdk>=0.0.14",     # Using GitHub version with PR #60 fix
+  "check-jsonschema>=0.33.2",
+  "claude-code-sdk>=0.0.14", # Using GitHub version with PR #60 fix
   "fastapi[standard]>=0.115.14",
   "httpx>=0.28.1",
+  "httpx-sse>=0.4.1",
+  "keyring>=25.6.0",
   "openai>=1.93.0",
+  "prometheus-client>=0.22.1",
   "pydantic>=2.8.0",
   "pydantic-settings>=2.4.0",
   "rich>=13.0.0",
+  "rich-toolkit>=0.14.8",
+  "tomli>=2.0.0; python_version<'3.11'",
   "typer>=0.16.0",
   "typing-extensions>=4.0.0",
   "uvicorn>=0.34.0",
 ]
 
+[build-system]
+# Using hatchling to used git tag for version
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+# requires = ["uv"]
+# build-backend = "uv.build"
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.hooks.vcs]
+version-file = "ccproxy/_version.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["ccproxy"]
+
 [project.scripts]
-ccproxy = "claude_code_proxy.cli:app"
+# ccproxy = "ccproxy.cli:app"
+ccproxy = "ccproxy.cli:main"
 
 [dependency-groups]
 dev = [
@@ -43,6 +53,12 @@ dev = [
   "pytest-cov>=4.0.0",
   "pytest-env>=0.8.0",
   "tox>=4.27.0",
+  "pre-commit>=4.2.0",
+  "anthropic>=0.57.1",
+  "textual-dev>=1.7.0",
+]
+security = [
+  "keyring>=25.0.0", # Optional keyring support for secure credential storage
 ]
 docs = [
   "mkdocs>=1.5.3",
@@ -58,9 +74,10 @@ docs = [
   "mkdocs-minify-plugin>=0.7.0",
   "mkdocs-redirects>=1.2.0",
 ]
+schema = ["pydantic>=2.8.0", "check-jsonschema>=0.33.2"]
 
 [tool.coverage.run]
-include = ["claude_code_proxy", "tests"]
+include = ["ccproxy", "tests"]
 
 [tool.coverage.report]
 exclude_lines = [
@@ -113,7 +130,7 @@ quote-style = "double"
 indent-style = "space"
 
 [tool.ruff.lint.isort]
-known-first-party = ["claude_code_proxy"]
+known-first-party = ["ccproxy"]
 force-single-line = false
 lines-after-imports = 2
 
@@ -158,6 +175,9 @@ module = "tests.*"
 disallow_untyped_defs = false
 disallow_incomplete_defs = false
 disallow_untyped_calls = false
+warn_unused_ignores = false
+# Ignore call-arg errors for Pydantic models with optional fields
+disable_error_code = ["call-arg"]
 
 [tool.pytest.ini_options]
 minversion = "6.0"
@@ -176,6 +196,8 @@ python_functions = ["test_*"]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 
+# Set test mode to prevent pollution of real credential files
+env = ["CCPROXY_TEST_MODE=true"]
 
 # Test markers for different test tiers
 markers = [
@@ -193,6 +215,15 @@ markers = [
 timeout = 300
 timeout_method = "thread"
 
+[tool.bandit]
+exclude_dirs = ["tests", "docs", "scripts", "examples"]
+skips = [
+  "B101",
+  "B601",
+  "B110",
+  "B113",
+] # Skip assert_used, shell_injection_possible, try_except_pass, request_without_timeout
+
 [tool.tox]
 legacy_tox_ini = """
   [tox]
@@ -209,7 +240,7 @@ legacy_tox_ini = """
   """
 
 [tool.setuptools.packages.find]
-include = ["claude_code_proxy*"]
+include = ["ccproxy*"]
 
 [tool.uv]
 package = true

@@ -1,14 +1,15 @@
 # Configuration
 
-Configure Claude Code Proxy API Server for your personal local setup and preferences.
+Configure Claude Code Proxy API Server for your local setup and preferences.
 
 ## Configuration Methods
 
 The server supports multiple configuration methods with the following priority order:
 
 1. **Environment Variables** (highest priority)
-2. **Configuration File** (`config.json`)
-3. **Default Values** (lowest priority)
+2. **TOML Configuration Files** (`.ccproxy.toml`, `ccproxy.toml`, or `~/.config/ccproxy/config.toml`)
+3. **JSON Configuration File** (`config.json`)
+4. **Default Values** (lowest priority)
 
 ## Environment Variables
 
@@ -24,7 +25,13 @@ The server supports multiple configuration methods with the following priority o
 
 | Variable | Description | Default | Example |
 |----------|-------------|---------|---------|
-| `AUTH_TOKEN` | Bearer token for API authentication | None | `AUTH_TOKEN=abc123xyz789...` |
+| `AUTH_TOKEN` | Authentication token for API access | None | `AUTH_TOKEN=abc123xyz789...` |
+
+The proxy accepts authentication tokens in multiple header formats:
+- **Anthropic Format**: `x-api-key: <token>` (takes precedence)
+- **OpenAI/Bearer Format**: `Authorization: Bearer <token>`
+
+All formats use the same configured `AUTH_TOKEN` value.
 
 ### Claude CLI Configuration
 
@@ -43,7 +50,50 @@ AUTH_TOKEN=abc123xyz789abcdef...  # Optional authentication
 CLAUDE_CLI_PATH=/opt/claude/bin/claude
 ```
 
-## Configuration File
+## TOML Configuration (Recommended)
+
+TOML configuration files provide a more readable and structured format. Files are searched in this order:
+
+1. `.ccproxy.toml` in the current directory
+2. `ccproxy.toml` in the git repository root
+3. `config.toml` in `~/.config/ccproxy/`
+
+### Example TOML Configuration
+
+```toml
+# Server settings
+host = "127.0.0.1"
+port = 8080
+log_level = "DEBUG"
+workers = 2
+
+# Security settings
+cors_origins = ["https://example.com", "https://app.com"]
+auth_token = "your-auth-token"
+
+# Docker settings
+[docker_settings]
+docker_image = "custom-claude-image"
+docker_volumes = ["/host/data:/container/data"]
+docker_environment = {CLAUDE_ENV = "production"}
+
+# Connection pool settings
+[pool_settings]
+enabled = true               # Enable/disable connection pooling
+min_size = 2                # Minimum number of instances to maintain
+max_size = 10               # Maximum number of instances allowed
+idle_timeout = 300          # Seconds before idle connections are closed
+warmup_on_startup = true    # Pre-create minimum instances on startup
+health_check_interval = 60  # Seconds between connection health checks
+acquire_timeout = 5.0       # Maximum seconds to wait for an available instance
+
+# Claude Code options
+[claude_code_options]
+model = "claude-3-5-sonnet-20241022"
+max_thinking_tokens = 30000
+```
+
+## JSON Configuration File
 
 Create a `config.json` file in the project root for advanced configuration:
 
@@ -101,6 +151,10 @@ Controls the FastAPI server behavior:
   }
 }
 ```
+
+### Connection Pool Configuration
+
+For improved performance, see the [Connection Pool Configuration Guide](/user-guide/pool-configuration/) for detailed settings.
 
 ### Claude Configuration
 
@@ -165,13 +219,17 @@ Configure API authentication and security features:
 ```json
 {
   "security": {
-    "auth_token": "your-secure-token-here",    // Bearer token for API auth
-    "enabled": true,                           // Enable/disable auth
-    "token_header": "Authorization",           // Header name for token
-    "token_prefix": "Bearer"                   // Token prefix
+    "auth_token": "your-secure-token-here",    // Authentication token for API access
+    "enabled": true                            // Enable/disable auth
   }
 }
 ```
+
+**Authentication Headers:** The proxy accepts tokens in multiple formats:
+- **Anthropic Format**: `x-api-key: <token>` (takes precedence)
+- **OpenAI/Bearer Format**: `Authorization: Bearer <token>`
+
+All formats use the same configured `auth_token` value.
 
 **Note:** When `auth_token` is not set or is null, authentication is disabled.
 
@@ -305,7 +363,7 @@ The server validates configuration on startup and will report errors for:
 
 ```bash
 # Check configuration without starting server
-uv run python -m claude_code_proxy.config.validate config.json
+uv run python -m ccproxy.config.validate config.json
 ```
 
 ## Personal Use Scenarios
@@ -452,6 +510,15 @@ CLAUDE_GROUP=claude
     "cwd": "/path/to/working/directory",
     "model": "claude-3-5-sonnet-20241022",
     "max_thinking_tokens": 30000
+  },
+  "pool_settings": {
+    "enabled": true,
+    "min_size": 2,
+    "max_size": 10,
+    "idle_timeout": 300,
+    "warmup_on_startup": true,
+    "health_check_interval": 60,
+    "acquire_timeout": 5.0
   }
 }
 ```
@@ -554,7 +621,7 @@ CONFIG_FILE=/path/to/custom/config.json ccproxy run
 LOG_LEVEL=DEBUG ccproxy run
 
 # Validate configuration without starting server
-python -c "from claude_code_proxy.config.settings import get_settings; print('Config valid')"
+python -c "from ccproxy.config.settings import get_settings; print('Config valid')"
 
 # Check Claude CLI path resolution
 ccproxy claude -- --version
@@ -566,7 +633,7 @@ ccproxy claude -- --version
    ```bash
    # Check volume permissions
    ls -la ~/.config/claude/
-   
+
    # Fix permissions if needed
    chmod -R 755 ~/.config/claude/
    ```
@@ -582,7 +649,7 @@ ccproxy claude -- --version
    ```bash
    # Multiple origins
    CORS_ORIGINS="https://app1.example.com,https://app2.example.com"
-   
+
    # Development with multiple ports
    CORS_ORIGINS="http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000"
    ```

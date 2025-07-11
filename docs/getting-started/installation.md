@@ -2,52 +2,109 @@
 
 ## Prerequisites
 
-- Python 3.10 or higher
-- Claude CLI (installed locally OR use Docker - see configuration section)
+- Python 3.11 or higher
+- Claude account with active subscription (Pro, Team, or Enterprise)
 
 ## Installation Methods
 
-### Using pip
+### Using pipx (Recommended)
+
+The easiest way to install ccproxy is using pipx, which installs it in an isolated environment:
 
 ```bash
-pip install claude-code-proxy-api
+# Install pipx if you haven't already
+python -m pip install --user pipx
+python -m pipx ensurepath
+
+# Install ccproxy
+pipx install git+https://github.com/CaddyGlow/claude-code-proxy-api.git
 ```
 
-### Using uv (Recommended)
-
-```bash
-uv add claude-code-proxy-api
-```
-
-### From Source
+### From Source (Development)
 
 ```bash
 git clone https://github.com/CaddyGlow/claude-code-proxy-api.git
 cd claude-code-proxy-api
+
+# Using uv (recommended for development)
 uv sync
+
+# Or using pip
+pip install -e .
 ```
+
+## Authentication Setup
+
+After installation, you need to authenticate based on your usage mode:
+
+### Claude CLI Authentication (Claude Code Mode)
+
+For using Claude Code features:
+
+```bash
+# Login to Claude CLI (opens browser)
+claude /login
+
+# Verify authentication
+claude /status
+```
+
+**Credential Storage:**
+- Stored at: `~/.claude/credentials.json` or `~/.config/claude/credentials.json`
+- Managed by Claude CLI directly
+
+### CCProxy Authentication (API Mode)
+
+For using API mode with Anthropic OAuth2:
+
+```bash
+# Login to CCProxy (opens browser)
+ccproxy auth login
+```
+
+This will open a browser window for Anthropic OAuth2 authentication.
+
+**Credential Storage:**
+- **Primary**: System keyring (secure, recommended)
+- **Fallback**: `~/.config/ccproxy/credentials.json`
+
+### Verify CCProxy Authentication
+
+```bash
+# Check credential status
+ccproxy auth validate
+```
+
+Example output:
+```
+             Claude Credentials Validation
+
+                     Credential Status
+╭──────────────┬───────────────────────────────────────────╮
+│ Property     │ Value                                     │
+├──────────────┼───────────────────────────────────────────┤
+│ Status       │ Valid                                     │
+│ Subscription │ max                                       │
+│ Expires      │ 2025-07-08 17:13:05 UTC (0d 5h remaining) │
+│ Scopes       │ user:inference, user:profile              │
+╰──────────────┴───────────────────────────────────────────╯
+   success   ✓ Valid Claude credentials found
+```
+
+### View Credential Details
+
+```bash
+# Get detailed information (auto-renews if expired)
+ccproxy auth info
+```
+
+This displays full credential details including storage location and automatically renews the token if expired.
 
 ## Configuration
 
-You have two options for Claude CLI configuration:
+### Option 1: Local Installation
 
-### Option 1: Local Claude CLI Installation
-
-Install and configure Claude CLI locally:
-
-```bash
-# Install Claude CLI (follow official instructions)
-# Then authenticate
-claude auth login
-```
-
-**Verification:**
-```bash
-# Test Claude CLI directly
-claude --version
-claude /status
-
-# Test with the proxy (after cloning the repository)
+After authentication, test the installation:
 ccproxy claude -- /status
 ```
 

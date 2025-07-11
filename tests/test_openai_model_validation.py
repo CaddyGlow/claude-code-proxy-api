@@ -3,7 +3,8 @@
 import pytest
 from pydantic import ValidationError
 
-from claude_code_proxy.models.openai_models import (
+from ccproxy.formatters.translator import map_openai_model_to_claude
+from ccproxy.models.openai import (
     OpenAIChatCompletionRequest,
     OpenAIMessage,
     OpenAITool,
@@ -28,7 +29,7 @@ class TestOpenAIRequestValidation:
 
     def test_custom_messages_validator_empty_list(self) -> None:
         """Test the custom messages validator directly with empty list."""
-        from claude_code_proxy.models.openai_models import OpenAIChatCompletionRequest
+        from ccproxy.models.openai import OpenAIChatCompletionRequest
 
         # Call the validator method directly to test line 193
         with pytest.raises(ValueError) as exc_info:
@@ -84,7 +85,7 @@ class TestOpenAIRequestValidation:
         # Create 129 tools to exceed the limit
         tools = []
         for i in range(129):
-            from claude_code_proxy.models.openai_models import OpenAIFunction
+            from ccproxy.models.openai import OpenAIFunction
 
             tools.append(
                 OpenAITool(
@@ -115,7 +116,7 @@ class TestOpenAIRequestValidation:
         # Create exactly 128 tools (at the limit)
         tools = []
         for i in range(128):
-            from claude_code_proxy.models.openai_models import OpenAIFunction
+            from ccproxy.models.openai import OpenAIFunction
 
             tools.append(
                 OpenAITool(
@@ -160,6 +161,117 @@ class TestOpenAIRequestValidation:
         )
         assert request.tools is None
 
+    def test_deprecated_function_fields(self) -> None:
+        """Test that deprecated function fields are accepted for backward compatibility."""
+        request = OpenAIChatCompletionRequest.model_validate(
+            {
+                "model": "claude-opus-4-20250514",
+                "messages": [{"role": "user", "content": "Hello"}],
+                "functions": [
+                    {
+                        "name": "get_weather",
+                        "description": "Get weather info",
+                        "parameters": {"type": "object", "properties": {}},
+                    }
+                ],
+                "function_call": "auto",
+            }
+        )
+        assert request.functions is not None
+        assert len(request.functions) == 1
+        assert request.function_call == "auto"
+
+    def test_response_format_json_schema(self) -> None:
+        """Test response_format with json_schema type."""
+        from ccproxy.models.openai import OpenAIResponseFormat
+
+        # Test valid json_schema format
+        response_format = OpenAIResponseFormat.model_validate(
+            {
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "weather_response",
+                    "schema": {
+                        "type": "object",
+                        "properties": {
+                            "temperature": {"type": "number"},
+                            "unit": {"type": "string"},
+                        },
+                        "required": ["temperature", "unit"],
+                    },
+                },
+            }
+        )
+        assert response_format.type == "json_schema"
+        assert response_format.json_schema is not None
+        assert response_format.json_schema["name"] == "weather_response"
+
+    def test_response_format_json_schema_validation_error(self) -> None:
+        """Test that json_schema type without schema raises validation error."""
+        from ccproxy.models.openai import OpenAIResponseFormat
+
+        with pytest.raises(ValidationError) as exc_info:
+            OpenAIResponseFormat.model_validate(
+                {
+                    "type": "json_schema",
+                    # Missing json_schema field
+                }
+            )
+        assert "json_schema must be provided when type is 'json_schema'" in str(
+            exc_info.value
+        )
+
+    def test_response_format_json_object_with_schema_error(self) -> None:
+        """Test that json_object type with schema raises validation error."""
+        from ccproxy.models.openai import OpenAIResponseFormat
+
+        with pytest.raises(ValidationError) as exc_info:
+            OpenAIResponseFormat.model_validate(
+                {
+                    "type": "json_object",
+                    "json_schema": {"some": "schema"},  # Should not be allowed
+                }
+            )
+        assert "json_schema should only be provided when type is 'json_schema'" in str(
+            exc_info.value
+        )
+
+    def test_multimodal_fields(self) -> None:
+        """Test multimodal fields in request."""
+        request = OpenAIChatCompletionRequest.model_validate(
+            {
+                "model": "claude-opus-4-20250514",
+                "messages": [{"role": "user", "content": "Hello"}],
+                "modalities": ["text", "audio"],
+                "audio": {
+                    "voice": "alloy",
+                    "format": "mp3",
+                },
+            }
+        )
+        assert request.modalities == ["text", "audio"]
+        assert request.audio is not None
+        assert request.audio["voice"] == "alloy"
+
+    def test_store_and_metadata_fields(self) -> None:
+        """Test store and metadata fields."""
+        request = OpenAIChatCompletionRequest.model_validate(
+            {
+                "model": "claude-opus-4-20250514",
+                "messages": [{"role": "user", "content": "Hello"}],
+                "store": True,
+                "metadata": {
+                    "user_id": "12345",
+                    "session_id": "abc-def-ghi",
+                    "custom_field": "value",
+                },
+            }
+        )
+        assert request.store is True
+        assert request.metadata is not None
+        assert request.metadata["user_id"] == "12345"
+        assert request.metadata["session_id"] == "abc-def-ghi"
+
 
 @pytest.mark.unit
 class TestOpenAIResponseGeneration:
@@ -167,7 +279,7 @@ class TestOpenAIResponseGeneration:
 
     def test_create_response_factory_method(self) -> None:
         """Test the create class method for generating responses."""
-        from claude_code_proxy.models.openai_models import OpenAIChatCompletionResponse
+        from ccproxy.models.openai import OpenAIChatCompletionResponse
 
         # Test the factory method - covers line 337
         response = OpenAIChatCompletionResponse.create(
@@ -190,7 +302,7 @@ class TestOpenAIResponseGeneration:
 
     def test_create_response_with_tool_calls(self) -> None:
         """Test creating response with tool calls."""
-        from claude_code_proxy.models.openai_models import (
+        from ccproxy.models.openai import (
             OpenAIChatCompletionResponse,
             OpenAIFunctionCall,
             OpenAIToolCall,
@@ -220,3 +332,88 @@ class TestOpenAIResponseGeneration:
         assert response.choices[0].message.tool_calls is not None
         assert len(response.choices[0].message.tool_calls) == 1
         assert response.choices[0].message.tool_calls[0].function.name == "get_weather"
+
+
+@pytest.mark.unit
+class TestOpenAIModelMapping:
+    """Test OpenAI to Claude model mapping functionality."""
+
+    def test_map_gpt4o_mini_to_haiku(self) -> None:
+        """Test mapping gpt-4o-mini to claude-3-5-haiku-latest."""
+        result = map_openai_model_to_claude("gpt-4o-mini")
+        assert result == "claude-3-5-haiku-latest"
+
+    def test_map_o3_mini_to_opus(self) -> None:
+        """Test mapping o3-mini to claude-opus-4-20250514."""
+        result = map_openai_model_to_claude("o3-mini")
+        assert result == "claude-opus-4-20250514"
+
+    def test_map_o1_mini_to_sonnet(self) -> None:
+        """Test mapping o1-mini to claude-sonnet-4-20250514."""
+        result = map_openai_model_to_claude("o1-mini")
+        assert result == "claude-sonnet-4-20250514"
+
+    def test_map_gpt4o_to_sonnet_37(self) -> None:
+        """Test mapping gpt-4o to claude-3-7-sonnet-20250219."""
+        result = map_openai_model_to_claude("gpt-4o")
+        assert result == "claude-3-7-sonnet-20250219"
+
+    def test_startswith_matching_gpt4o_variants(self) -> None:
+        """Test startswith matching for gpt-4o variants."""
+        result = map_openai_model_to_claude("gpt-4o-2024-05-13")
+        assert result == "claude-3-7-sonnet-20250219"
+
+        result = map_openai_model_to_claude("gpt-4o-preview")
+        assert result == "claude-3-7-sonnet-20250219"
+
+    def test_startswith_matching_gpt4o_mini_variants(self) -> None:
+        """Test startswith matching for gpt-4o-mini variants."""
+        result = map_openai_model_to_claude("gpt-4o-mini-2024-07-18")
+        assert result == "claude-3-5-haiku-latest"
+
+    def test_claude_models_pass_through(self) -> None:
+        """Test that Claude models pass through without mapping."""
+        claude_models = [
+            "claude-opus-4-20250514",
+            "claude-sonnet-4-20250514",
+            "claude-3-7-sonnet-20250219",
+            "claude-3-5-sonnet-20241022",
+            "claude-3-5-haiku-20241022",
+        ]
+
+        for model in claude_models:
+            result = map_openai_model_to_claude(model)
+            assert result == model
+
+    def test_unknown_model_pass_through(self) -> None:
+        """Test that unknown models pass through unchanged."""
+        unknown_models = [
+            "unknown-model",
+            "custom-model-v1",
+            "my-fine-tuned-model",
+        ]
+
+        for model in unknown_models:
+            result = map_openai_model_to_claude(model)
+            assert result == model
+
+    def test_exact_match_takes_precedence(self) -> None:
+        """Test that exact matches take precedence over startswith matches."""
+        # gpt-4o should map to claude-3-7-sonnet-20250219 even though
+        # gpt-4o-mini would also match the startswith for gpt-4o
+        result = map_openai_model_to_claude("gpt-4o")
+        assert result == "claude-3-7-sonnet-20250219"
+
+    def test_mapping_in_translator_request(self) -> None:
+        """Test model mapping integration in translator."""
+        from ccproxy.formatters.translator import OpenAITranslator
+
+        translator = OpenAITranslator()
+        openai_request = {
+            "model": "gpt-4o-mini",
+            "messages": [{"role": "user", "content": "Hello"}],
+            "max_tokens": 100,
+        }
+
+        anthropic_request = translator.openai_to_anthropic_request(openai_request)
+        assert anthropic_request["model"] == "claude-3-5-haiku-latest"

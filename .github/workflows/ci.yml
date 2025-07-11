@@ -30,6 +30,9 @@ jobs:
       - name: Run CI pipeline
         run: make ci
 
+      - name: Build documentation
+        run: make docs-build
+
       - name: Upload coverage reports
         uses: codecov/codecov-action@v4
         with:
@@ -37,4 +40,3 @@ jobs:
           flags: unittests
           name: codecov-umbrella
           fail_ci_if_error: false
-

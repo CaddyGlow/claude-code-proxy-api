@@ -5,9 +5,48 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.1.0] - 2024-12-04
+## [0.1.0] - 2025-01-08
+
+### Recent Updates
+
+#### Code Organization & Architecture
+- **Domain-Based Code Organization**: Reorganized code by domain with modern type annotations for better maintainability
+- **Streaming Utilities Refactoring**: Separated streaming utilities by format with unified transformer architecture
+- **OpenAI Compatibility Modernization**: Enhanced OpenAI compatibility with thinking blocks and improved type safety
+- **Anthropic Messages API Alignment**: Aligned Messages API with official Anthropic specification for better compatibility
+
+#### Enhanced Features
+- **Thinking Blocks Support**: Added support for OpenAI thinking blocks in API responses
+- **Systemd Integration**: Enhanced OpenAI compatibility with systemd setup for production deployments
+- **Proxy Support**: Added comprehensive HTTP/HTTPS proxy support for network requests
+- **Keyring Security**: Implemented secure credential storage using system keyring for enhanced security
+
+#### Package & Documentation
+- **Package Rename**: Renamed package from `claude_code_proxy` to `ccproxy` for better naming consistency
+- **Documentation Consolidation**: Consolidated and streamlined documentation with dual API access modes
+- **Quick Start Improvements**: Streamlined Quick Start guide with concise examples and Aider integration
+- **Docker Testing**: Updated Docker image name assertions in test suite
 
 ### Added
+
+#### Configuration & CLI Enhancements
+- **TOML Configuration Support**: Full TOML configuration file support with schema validation
+- **Multi-format Configuration**: Support for TOML, JSON, and YAML configuration files with auto-detection
+- **Enhanced CLI Interface**: New unified `ccproxy` command with improved usability
+- **Schema Validation**: JSON Schema generation for TOML configuration files with editor support
+- **Token Generation**: `generate-token` command with force option for API key management
+- **User Mapping**: Docker user mapping support for better security and file permissions
+- **Keyring Support**: Secure credential storage using system keyring for OAuth tokens and sensitive data
+
+#### API & Integration Features
+- **Anthropic Messages API**: Native Anthropic Messages API endpoint with MCP integration
+- **OpenAI Model Mapping**: Enhanced OpenAI model compatibility with increased token limits
+- **Pre-commit Configuration**: Comprehensive pre-commit hooks for code quality assurance
+- **OpenAI Utils**: Helper utilities for OpenAI API compatibility improvements
+- **Systemd Support**:
+  - Service template for running ccproxy as a system service
+  - Setup script for automatic systemd configuration
+  - Documentation for systemd deployment
 
 #### Personal Claude Access
 - **OAuth2 Authentication**: Use your existing Claude subscription without API costs
@@ -63,6 +102,77 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **API Reference**: Documentation for both Anthropic and OpenAI endpoints
 - **Troubleshooting**: Common issues and solutions for personal use
 - **Docker Guide**: Optional containerization for enhanced isolation
+
+### Changed
+
+#### Documentation Updates
+- **Streamlined Quick Start**: Concise examples and improved readability
+- **Aider Integration**: Added documentation for Aider AI coding assistant integration
+- **Systemd Setup Guide**: Comprehensive documentation for systemd deployment
+
+#### CLI & Architecture Improvements
+- **Major CLI Restructuring**: Moved CLI to dedicated `ccproxy/cli/` package with modular command structure
+- **Rich CLI Experience**: Replaced basic output with Rich toolkit for colored, structured output
+- **Docker Architecture**: Refactored from DockerCommandBuilder to new adapter-based architecture
+- **FastAPI Subcommands**: Organized commands under FastAPI subcommand group for better organization
+- **Version Management**: Implemented dynamic versioning using hatch-vcs and git tags
+
+#### API & Routing Enhancements
+- **URL Structure Refactoring**: Moved Claude Code SDK endpoints to `/cc/` prefix for clear separation
+- **Dual Router Support**: Added dedicated Anthropic (`/v1/`) and OpenAI (`/openai/v1/`) routers
+- **Legacy Path Support**: Maintained backward compatibility with deprecated warnings
+- **Improved Error Handling**: More robust API error handling with proper HTTP status codes
+
+#### Logging & Configuration
+- **Enhanced Logging**: Integrated Rich toolkit with uvicorn for consistent, structured logging
+- **Optimized Log Levels**: Reduced noise by moving verbose messages from INFO to DEBUG
+- **Configuration Display**: Enhanced config display with API usage information
+- **Simplified Examples**: Streamlined example configurations for better usability
+
+#### Code Quality & Organization
+- **Improved Type Safety**: Enhanced type annotations and mypy compliance throughout codebase
+- **Modular Services**: Extracted credentials, Docker, and CLI utilities to dedicated modules
+- **Removed Connection Pooling**: Simplified architecture by removing connection pooling for better stability
+- **Documentation**: Updated repository references and comprehensive documentation additions
+- **Enhanced Reverse Proxy**:
+  - Improved request and response transformation pipeline
+  - Better separation of concerns with dedicated transformer services
+  - Factory pattern for cleaner proxy instantiation
+
+### Fixed
+- **Test Reliability**: Improved test stability and reliability across all test suites
+- **Docker Integration**: Fixed Claude Docker home directory usage and command execution
+- **Environment Variables**: Resolved nested environment variable handling for configuration
+- **API Response Handling**: Better handling of unexpected API response types
+- **File Standardization**: Consistent file endings and formatting across all files
+- **Proxy Support**: Added proper HTTP/HTTPS proxy support for network requests
+- **OpenAI Compatibility**: Improved compatibility with OpenAI API format and clients
+- **Docker Settings**: Updated Docker image name assertions in tests
+
+### Removed
+- **Worker Pool Implementation**: Removed Node.js worker pool for simplified architecture
+- **Unused Dependencies**: Cleaned up unused imports and dependencies
+- **Rate Limiting Documentation**: Removed outdated rate limiting references
+
+### Security
+- **Enhanced GitHub Actions**: Security features added to CI/CD workflows
+- **Docker Security**: Improved Docker isolation and user mapping
+- **Input Validation**: Strengthened request validation and sanitization
+- **Credential Management**: OAuth tokens and sensitive credentials now stored securely in system keyring instead of plain text
+
+### Authentication & Reverse Proxy Features
+- **OAuth Authentication**: Implemented OAuth2 authentication flow with credentials management
+- **Credentials Service**: Comprehensive credential management with secure storage and token refresh
+- **OAuth Client Integration**: Built-in OAuth client for Claude authentication flow
+- **Reverse Proxy Modes**: Multiple transformation modes accessible via URL prefixes:
+  - `/min/*` - Minimal transformations (OAuth headers only)
+  - `/full/*` - Full transformations (system prompts, format conversion)
+  - `/pt/*` - Passthrough mode (no transformations except OAuth)
+  - `/unclaude/*` - Backward compatibility alias for full mode
+- **Configurable Default Mode**: Set default proxy mode via `default_proxy_mode` setting
+- **Enhanced Security**: Automatic stripping of client auth headers to prevent key leakage
+- **Beta Parameter Support**: Automatic addition of beta=true for /v1/messages requests
+- **Request/Response Transformers**: Modular transformation pipeline for flexible request handling
 
 ### Technical Details
 

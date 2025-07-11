@@ -45,9 +45,9 @@ FROM python:3.11-slim-bookworm
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
   --mount=type=cache,target=/var/lib/apt,sharing=locked \
   apt-get update && apt-get install -y \
-  curl \
+  curl wget ripgrep fd-find exa sed mawk procps\
+  build-essential \
   git \
-  procps \
   && rm -rf /var/lib/apt/lists/*
 
 # Copy Node.js binaries from node-deps stage
@@ -57,8 +57,8 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 # COPY --from=node-deps /usr/local/bin/pnpm /usr/local/bin/pnpm
 # COPY --from=node-deps /usr/local/lib/node_modules /usr/local/lib/node_modules
 
-# We have to copy the entire /usr/local that seem to be 
-# more realiable  
+# We have to copy the entire /usr/local that seem to be
+# more realiable
 COPY --from=node-deps /usr/local /usr/local
 
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
@@ -78,13 +78,13 @@ ENV PYTHONPATH=/app
 ENV HOST=0.0.0.0
 ENV PORT=8000
 
-EXPOSE 8000
+EXPOSE ${PORT:-8000}
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:8000/health || exit 1
+  CMD curl -f http://localhost:${PORT:-8000}/health || exit 1
 
-# Entrypoint used to create user and set 
+# Entrypoint used to create user and set
 # user home folder
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 
-CMD ["fastapi", "run", "claude_code_proxy/main.py"]
+CMD ["ccproxy"]

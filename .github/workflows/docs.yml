@@ -5,7 +5,7 @@ on:
     branches: [main, dev]
     paths:
       - "docs/**"
-      - "claude_code_proxy/**"
+      - "ccproxy/**"
       - "mkdocs.yml"
       - "pyproject.toml"
       - ".github/workflows/docs.yml"
@@ -13,7 +13,7 @@ on:
     branches: [main]
     paths:
       - "docs/**"
-      - "claude_code_proxy/**"
+      - "ccproxy/**"
       - "mkdocs.yml"
       - "pyproject.toml"
       - ".github/workflows/docs.yml"
@@ -113,4 +113,3 @@ jobs:
           linkchecker http://127.0.0.1:8000 --check-extern --ignore-url=".*localhost.*" --ignore-url=".*127\.0\.0\.1.*" || true
           # Kill the server
           kill $SERVER_PID
-
