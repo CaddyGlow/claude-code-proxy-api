@@ -1,0 +1,139 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+	html {
+		font-family: "Inter", system-ui, sans-serif;
+	}
+}
+
+@layer components {
+	.card {
+		@apply bg-white rounded-lg shadow-sm border border-gray-200 p-6;
+	}
+
+	.card-dark {
+		@apply bg-gray-800 border-gray-700;
+	}
+
+	.metric-card {
+		@apply card hover:shadow-md transition-shadow duration-200;
+	}
+
+	.metric-value {
+		@apply text-2xl font-bold text-gray-900;
+	}
+
+	.metric-label {
+		@apply text-sm font-medium text-gray-500 uppercase tracking-wide;
+	}
+
+	.chart-container {
+		@apply card min-h-[300px] flex flex-col;
+	}
+
+	.chart-header {
+		@apply flex items-center justify-between mb-4 pb-4 border-b border-gray-200;
+	}
+
+	.chart-title {
+		@apply text-lg font-semibold text-gray-900;
+	}
+
+	.status-indicator {
+		@apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+	}
+
+	.status-online {
+		@apply status-indicator bg-green-100 text-green-800;
+	}
+
+	.status-offline {
+		@apply status-indicator bg-red-100 text-red-800;
+	}
+
+	.status-warning {
+		@apply status-indicator bg-yellow-100 text-yellow-800;
+	}
+
+	.activity-item {
+		@apply flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-50 transition-colors;
+	}
+
+	.activity-time {
+		@apply text-xs text-gray-500 font-mono;
+	}
+
+	.activity-content {
+		@apply flex-1 min-w-0;
+	}
+
+	.activity-title {
+		@apply text-sm font-medium text-gray-900 truncate;
+	}
+
+	.activity-subtitle {
+		@apply text-xs text-gray-500 truncate;
+	}
+}
+
+@layer utilities {
+	.scrollbar-thin {
+		scrollbar-width: thin;
+		scrollbar-color: rgb(203 213 225) transparent;
+	}
+
+	.scrollbar-thin::-webkit-scrollbar {
+		width: 6px;
+	}
+
+	.scrollbar-thin::-webkit-scrollbar-track {
+		background: transparent;
+	}
+
+	.scrollbar-thin::-webkit-scrollbar-thumb {
+		background-color: rgb(203 213 225);
+		border-radius: 3px;
+	}
+
+	.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+		background-color: rgb(148 163 184);
+	}
+}
+
+/* Custom animations */
+@keyframes fadeInUp {
+	from {
+		opacity: 0;
+		transform: translateY(20px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+.animate-fade-in-up {
+	animation: fadeInUp 0.6s ease-out;
+}
+
+/* Loading spinner */
+.spinner {
+	@apply inline-block w-4 h-4 border-2 border-gray-200 border-t-claude-600 rounded-full animate-spin;
+}
+
+/* Chart.js custom styles */
+.chartjs-tooltip {
+	@apply bg-gray-900 text-white px-3 py-2 rounded-lg shadow-lg text-sm;
+}
+
+/* Real-time indicator */
+.pulse-dot {
+	@apply w-2 h-2 bg-green-500 rounded-full animate-pulse;
+}
+
+.pulse-dot::before {
+	content: "";
+	@apply absolute w-2 h-2 bg-green-500 rounded-full animate-ping;
+}
