@@ -10,6 +10,28 @@ export default defineConfig(({ mode }) => ({
 		server: {
 			port: 5173,
 			proxy: {
+				// New Analytics API endpoints
+				"/metrics/analytics": {
+					target: "http://localhost:8000",
+					changeOrigin: true,
+					secure: false,
+				},
+				"/metrics/health": {
+					target: "http://localhost:8000",
+					changeOrigin: true,
+					secure: false,
+				},
+				"/metrics/status": {
+					target: "http://localhost:8000",
+					changeOrigin: true,
+					secure: false,
+				},
+				"/metrics/query": {
+					target: "http://localhost:8000",
+					changeOrigin: true,
+					secure: false,
+				},
+				// Legacy endpoints
 				"/metrics/summary": {
 					target: "http://localhost:8000",
 					changeOrigin: true,

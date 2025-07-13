@@ -9,7 +9,7 @@ interface Props {
 const { metric, class: additionalClass = "" }: Props = $props();
 
 // Generate SVG icon based on icon type
-const getIconSVG = (iconType: string): string => {
+const _getIconSVG = (iconType: string): string => {
 	switch (iconType) {
 		case "requests":
 			return '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"/>';
@@ -24,7 +24,7 @@ const getIconSVG = (iconType: string): string => {
 	}
 };
 
-const getIconColorClass = (color: string): string => {
+const _getIconColorClass = (color: string): string => {
 	switch (color) {
 		case "blue":
 			return "bg-blue-100 text-blue-600";
@@ -41,7 +41,7 @@ const getIconColorClass = (color: string): string => {
 	}
 };
 
-const getChangeColorClass = (color: string): string => {
+const _getChangeColorClass = (color: string): string => {
 	switch (color) {
 		case "green":
 			return "text-green-600";

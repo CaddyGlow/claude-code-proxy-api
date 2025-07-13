@@ -135,7 +135,7 @@ export class SSEMetricsClient {
 			try {
 				const data = JSON.parse(event.data);
 				this.notifyMessageListeners(data);
-			} catch (error) {
+			} catch (_error) {
 				this.notifyErrorListeners(new Error("Failed to parse SSE message"));
 			}
 		};

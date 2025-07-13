@@ -1,30 +1,48 @@
 <script lang="ts">
-import type { MetricsSummary } from "$lib/types/metrics";
-import { formatNumber } from "$lib/utils/formatters";
+
+import type { MetricsSummary, ModelUsageData } from "$lib/types/metrics";
 
 interface Props {
-	summary: MetricsSummary | null;
+	summary?: MetricsSummary | null;
+	modelData?: ModelUsageData[];
 	class?: string;
 }
 
-const { summary, class: className = "" }: Props = $props();
+const { summary, modelData, class: className = "" }: Props = $props();
 
-// Prepare chart data using $derived for reactivity
+// Prepare chart data using $derived for reactivity - prioritize new modelData
 const chartData = $derived.by(() => {
+	// Use new modelData if available, otherwise fall back to legacy summary
+	if (modelData && modelData.length > 0) {
+		return modelData.map((model, index) => ({
+			label: model.model,
+			value: model.request_count,
+			percentage: model.percentage,
+			avgResponseTime: model.avg_response_time,
+			totalCost: model.total_cost,
+			color: colors[index % colors.length],
+		}));
+	}
+
+	// Legacy fallback
 	if (!summary) {
 		return [];
 	}
 
-	// Use either models or model_usage field from API
 	const modelUsage = summary.models ?? summary.model_usage ?? {};
-
-	const total = Object.values(modelUsage).reduce((sum, count) => sum + count, 0);
+	const total = Object.values(modelUsage).reduce(
+		(sum, count) => sum + count,
+		0,
+	);
 
 	return Object.entries(modelUsage)
-		.map(([model, count]) => ({
+		.map(([model, count], index) => ({
 			label: model,
 			value: count,
 			percentage: total > 0 ? (count / total) * 100 : 0,
+			avgResponseTime: 0, // Not available in legacy data
+			totalCost: 0, // Not available in legacy data
+			color: colors[index % colors.length],
 		}))
 		.sort((a, b) => b.value - a.value); // Sort by usage count
 });
@@ -41,42 +59,27 @@ const colors = [
 	"rgb(245, 101, 101)", // red-400
 ];
 
-// Simple SVG pie chart function
-function createPieSlices(data: typeof chartData) {
-	let cumulativePercentage = 0;
-	const radius = 80;
-	const centerX = 100;
-	const centerY = 100;
+// Transform data for LayerChart Arc component - LayerChart expects hierarchical data
+const _arcData = $derived(() => {
+	if (chartData.length === 0) return null;
 
-	return data.map((item, index) => {
-		const startAngle = (cumulativePercentage / 100) * 2 * Math.PI;
-		const endAngle = ((cumulativePercentage + item.percentage) / 100) * 2 * Math.PI;
+	// Create hierarchical data structure that LayerChart expects
+	return {
+		children: chartData.map((item, _index) => ({
+			id: item.label,
+			label: item.label,
+			value: item.value, // Use actual request count for sizing
+			percentage: item.percentage,
+			avgResponseTime: item.avgResponseTime,
+			totalCost: item.totalCost,
+			color: item.color,
+		})),
+	};
+});
 
-		const x1 = centerX + radius * Math.cos(startAngle);
-		const y1 = centerY + radius * Math.sin(startAngle);
-		const x2 = centerX + radius * Math.cos(endAngle);
-		const y2 = centerY + radius * Math.sin(endAngle);
-
-		const largeArcFlag = item.percentage > 50 ? 1 : 0;
-
-		const pathData = [
-			`M ${centerX} ${centerY}`,
-			`L ${x1} ${y1}`,
-			`A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2}`,
-			'Z'
-		].join(' ');
-
-		cumulativePercentage += item.percentage;
-
-		return {
-			...item,
-			pathData,
-			color: colors[index % colors.length],
-		};
-	});
-}
-
-const pieSlices = $derived(createPieSlices(chartData));
+// Chart dimensions for pie chart
+const _pieSize = 200;
+const _padding = { top: 20, right: 20, bottom: 20, left: 20 };
 </script>
 
 <div class="w-full {className}">
@@ -89,50 +92,103 @@ const pieSlices = $derived(createPieSlices(chartData));
 			</div>
 		{:else}
 			<div class="flex flex-col lg:flex-row gap-6">
-				<!-- Pie Chart -->
+				<!-- Simple Pie Chart Visualization -->
 				<div class="flex-1">
 					<div class="h-64 w-full flex items-center justify-center">
-						<svg width="200" height="200" viewBox="0 0 200 200" class="drop-shadow-sm">
-							{#each pieSlices as slice, index}
-								<path
-									d={slice.pathData}
-									fill={slice.color}
-									stroke="white"
-									stroke-width="2"
-									class="hover:opacity-80 transition-opacity cursor-pointer"
-									title="{slice.label}: {formatNumber(slice.value)} requests ({slice.percentage.toFixed(1)}%)"
-								/>
+						<div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
+							{#each chartData as model}
+								<div class="border rounded-lg p-4">
+									<div class="flex items-center justify-between mb-2">
+										<h4 class="font-medium text-gray-900">{model.label}</h4>
+										<span class="text-sm text-gray-500">{model.percentage.toFixed(1)}%</span>
+									</div>
+									<div class="space-y-1 text-sm text-gray-600">
+										<div class="flex justify-between">
+											<span>Requests:</span>
+											<span class="font-medium">{model.value.toLocaleString()}</span>
+										</div>
+										{#if model.avgResponseTime > 0}
+											<div class="flex justify-between">
+												<span>Avg Response:</span>
+												<span class="font-medium">{model.avgResponseTime.toFixed(3)}s</span>
+											</div>
+										{/if}
+										{#if model.totalCost > 0}
+											<div class="flex justify-between">
+												<span>Total Cost:</span>
+												<span class="font-medium">${model.totalCost.toFixed(4)}</span>
+											</div>
+										{/if}
+									</div>
+									<!-- Progress bar showing percentage -->
+									<div class="mt-2">
+										<div class="w-full bg-gray-200 rounded-full h-2">
+											<div
+												class="h-2 rounded-full transition-all duration-300"
+												style="width: {model.percentage}%; background-color: {model.color}"
+											></div>
+										</div>
+									</div>
+								</div>
 							{/each}
-						</svg>
+						</div>
 					</div>
 				</div>
 
-				<!-- Legend -->
+				<!-- Enhanced Legend -->
 				<div class="lg:w-64">
 					<h4 class="text-sm font-medium text-gray-700 mb-3">Models</h4>
 					<div class="space-y-2">
-						{#each pieSlices as slice}
+						{#each chartData as model}
 							<div class="flex items-center justify-between">
 								<div class="flex items-center space-x-2">
 									<div
 										class="w-3 h-3 rounded-full"
-										style="background-color: {slice.color}"
+										style="background-color: {model.color}"
 									></div>
-									<span class="text-sm text-gray-600 truncate" title={slice.label}>
-										{slice.label}
+									<span class="text-sm text-gray-600 truncate" title={model.label}>
+										{model.label}
 									</span>
 								</div>
 								<div class="text-right">
 									<div class="text-sm font-medium text-gray-900">
-										{formatNumber(slice.value)}
+										{formatNumber(model.value)}
 									</div>
 									<div class="text-xs text-gray-500">
-										{slice.percentage.toFixed(1)}%
+										{model.percentage.toFixed(1)}%
 									</div>
+									{#if model.avgResponseTime > 0}
+										<div class="text-xs text-gray-500">
+											{model.avgResponseTime.toFixed(2)}s avg
+										</div>
+									{/if}
 								</div>
 							</div>
 						{/each}
 					</div>
+
+					<!-- Enhanced Statistics -->
+					{#if chartData.length > 0}
+						<div class="mt-4 pt-3 border-t border-gray-200">
+							<h5 class="text-xs font-medium text-gray-700 mb-2">Summary</h5>
+							<div class="space-y-1 text-xs text-gray-600">
+								<div class="flex justify-between">
+									<span>Total Models:</span>
+									<span class="font-medium">{chartData.length}</span>
+								</div>
+								<div class="flex justify-between">
+									<span>Total Requests:</span>
+									<span class="font-medium">{chartData.reduce((sum, m) => sum + m.value, 0).toLocaleString()}</span>
+								</div>
+								{#if chartData.some(m => m.totalCost > 0)}
+									<div class="flex justify-between">
+										<span>Total Cost:</span>
+										<span class="font-medium">${chartData.reduce((sum, m) => sum + m.totalCost, 0).toFixed(4)}</span>
+									</div>
+								{/if}
+							</div>
+						</div>
+					{/if}
 				</div>
 			</div>
 		{/if}

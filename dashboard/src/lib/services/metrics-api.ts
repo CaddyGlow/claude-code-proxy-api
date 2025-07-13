@@ -1,6 +1,12 @@
 import type {
+	AnalyticsResponse,
+	AnalyticsParams,
+	StorageHealthResponse,
+	MetricsStatusResponse,
+	QueryRequest,
+	QueryResponse,
+	// Legacy types for backward compatibility
 	MetricsDataResponse,
-	MetricsHealthResponse,
 	MetricsSummary,
 	ApiMetricType,
 	SSEConnectionsResponse,
@@ -105,43 +111,67 @@ export class MetricsApiClient {
 	}
 
 	/**
-	 * Get metrics status
+	 * Get analytics data (NEW API)
 	 */
-	async getStatus(): Promise<{ status: string }> {
-		return this.request(DASHBOARD_CONFIG.ENDPOINTS.STATUS);
+	async getAnalytics(params: AnalyticsParams = {}): Promise<AnalyticsResponse> {
+		const queryString = this.buildQueryString(params);
+		const endpoint = `/analytics${queryString ? `?${queryString}` : ""}`;
+		return this.request<AnalyticsResponse>(endpoint);
 	}
 
 	/**
-	 * Get metrics data with filtering and pagination
+	 * Get storage health status (NEW API)
+	 */
+	async getHealth(): Promise<StorageHealthResponse> {
+		return this.request<StorageHealthResponse>("/health");
+	}
+
+	/**
+	 * Get metrics system status (NEW API)
+	 */
+	async getStatus(): Promise<MetricsStatusResponse> {
+		return this.request<MetricsStatusResponse>("/status");
+	}
+
+	/**
+	 * Execute custom SQL query (NEW API)
+	 */
+	async executeQuery(request: QueryRequest): Promise<QueryResponse> {
+		return this.request<QueryResponse>("/query", {
+			method: "POST",
+			body: JSON.stringify(request),
+		});
+	}
+
+	/**
+	 * Create SSE connection for real-time metrics
+	 */
+	createSSEConnection(baseUrl?: string): EventSource {
+		const url = `${baseUrl || this.baseUrl}/stream`;
+		return new EventSource(url);
+	}
+
+	// Legacy methods for backward compatibility
+	/**
+	 * @deprecated Use getAnalytics() instead
 	 */
 	async getMetricsData(
 		params: MetricsDataParams = {},
 	): Promise<MetricsDataResponse> {
 		const queryString = this.buildQueryString(params);
 		const endpoint = `${DASHBOARD_CONFIG.ENDPOINTS.DATA}${queryString ? `?${queryString}` : ""}`;
-
 		return this.request<MetricsDataResponse>(endpoint);
 	}
 
 	/**
-	 * Get aggregated metrics summary
+	 * @deprecated Use getAnalytics() instead
 	 */
 	async getMetricsSummary(
 		params: MetricsSummaryParams = {},
 	): Promise<MetricsSummary> {
 		const queryString = this.buildQueryString(params);
 		const endpoint = `${DASHBOARD_CONFIG.ENDPOINTS.SUMMARY}${queryString ? `?${queryString}` : ""}`;
-
 		return this.request<MetricsSummary>(endpoint);
-	}
-
-	/**
-	 * Get metrics system health
-	 */
-	async getHealth(): Promise<MetricsHealthResponse> {
-		return this.request<MetricsHealthResponse>(
-			DASHBOARD_CONFIG.ENDPOINTS.HEALTH,
-		);
 	}
 
 	/**
@@ -154,13 +184,82 @@ export class MetricsApiClient {
 	}
 
 	/**
-	 * Get metrics data for a specific time range
+	 * Get analytics for a specific time range
+	 */
+	async getAnalyticsForTimeRange(
+		startTime: Date,
+		endTime: Date,
+		serviceType?: string,
+		model?: string,
+	): Promise<AnalyticsResponse> {
+		const params: AnalyticsParams = {
+			start_time: Math.floor(startTime.getTime() / 1000),
+			end_time: Math.floor(endTime.getTime() / 1000),
+		};
+
+		if (serviceType) {
+			params.service_type = serviceType as any;
+		}
+
+		if (model) {
+			params.model = model;
+		}
+
+		return this.getAnalytics(params);
+	}
+
+	/**
+	 * Get analytics for the last N hours
+	 */
+	async getAnalyticsForHours(
+		hours: number = 24,
+		serviceType?: string,
+		model?: string,
+	): Promise<AnalyticsResponse> {
+		const params: AnalyticsParams = {
+			hours: Math.min(Math.max(hours, 1), 168), // Clamp between 1 and 168 hours
+		};
+
+		if (serviceType) {
+			params.service_type = serviceType as any;
+		}
+
+		if (model) {
+			params.model = model;
+		}
+
+		return this.getAnalytics(params);
+	}
+
+	/**
+	 * Get analytics filtered by service type
+	 */
+	async getAnalyticsByService(
+		serviceType: string,
+		hours: number = 24,
+	): Promise<AnalyticsResponse> {
+		return this.getAnalyticsForHours(hours, serviceType);
+	}
+
+	/**
+	 * Get analytics filtered by model
+	 */
+	async getAnalyticsByModel(
+		model: string,
+		hours: number = 24,
+	): Promise<AnalyticsResponse> {
+		return this.getAnalyticsForHours(hours, undefined, model);
+	}
+
+	// Legacy methods for backward compatibility
+	/**
+	 * @deprecated Use getAnalyticsForTimeRange() instead
 	 */
 	async getMetricsForTimeRange(
 		startTime: Date,
 		endTime: Date,
-		metricType?: MetricType,
-		limit: number = DASHBOARD_CONFIG.LIMITS.PAGE_SIZE,
+		metricType?: any,
+		limit: number = 100,
 	): Promise<MetricsDataResponse> {
 		const params: MetricsDataParams = {
 			start_time: startTime.toISOString(),
@@ -176,7 +275,7 @@ export class MetricsApiClient {
 	}
 
 	/**
-	 * Get summary for a specific time range
+	 * @deprecated Use getAnalyticsForTimeRange() instead
 	 */
 	async getSummaryForTimeRange(
 		startTime: Date,
@@ -210,8 +309,20 @@ export class MetricsApiClient {
 	 */
 	async isAvailable(): Promise<boolean> {
 		try {
-			await this.getStatus();
-			return true;
+			const status = await this.getStatus();
+			return status.status === "healthy";
+		} catch {
+			return false;
+		}
+	}
+
+	/**
+	 * Check if the storage backend is healthy
+	 */
+	async isStorageHealthy(): Promise<boolean> {
+		try {
+			const health = await this.getHealth();
+			return health.status === "healthy";
 		} catch {
 			return false;
 		}
