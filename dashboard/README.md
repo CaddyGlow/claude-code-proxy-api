@@ -1,31 +1,21 @@
-# Claude Code Proxy Metrics Dashboard
+# Claude Code Proxy Dashboard
 
-A lightweight, TypeScript-based metrics dashboard for the Claude Code Proxy API built with Vite, Bun, and Tailwind CSS.
+Real-time metrics dashboard for Claude Code Proxy API Server, built with Svelte 5 and LayerChart.
 
 ## Features
 
-- **Real-time Metrics**: Live updates via Server-Sent Events (SSE)
-- **Interactive Charts**: Request volume, response time, error distribution, model usage, and cost analytics
-- **Time Range Selection**: 1h, 6h, 24h, 7d views
-- **Activity Feed**: Real-time request activity stream
-- **Responsive Design**: Mobile-friendly with Tailwind CSS
-- **Type Safe**: Full TypeScript implementation
-
-## Tech Stack
-
-- **Build Tool**: Vite
-- **Package Manager**: Bun
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS
-- **Charts**: Chart.js
-- **Date Handling**: date-fns
+- **Real-time Metrics**: Live charts displaying request volume, response times, error rates, and model usage
+- **Modern Architecture**: Built with Svelte 5 runes for optimal performance
+- **Interactive Charts**: LayerChart-powered visualizations with tooltips and legends
+- **Responsive Design**: Works on desktop and mobile devices
+- **SSE Streaming**: Real-time updates via Server-Sent Events
 
 ## Development
 
 ### Prerequisites
 
-- Bun (recommended) or Node.js 18+
-- TypeScript 5.x
+- [Bun](https://bun.sh/) (recommended) or Node.js 18+
+- The dashboard is designed to work with the Claude Code Proxy API Server
 
 ### Setup
 
@@ -33,86 +23,117 @@ A lightweight, TypeScript-based metrics dashboard for the Claude Code Proxy API 
 # Install dependencies
 bun install
 
-# Start development server with HMR
+# Start development server
 bun run dev
 
-# Type checking
-bun run type-check
+# Open browser at http://localhost:5173
 ```
 
-### Building
+### Available Scripts
+
+- `bun run dev` - Start development server with hot reload
+- `bun run build` - Build for production (static files)
+- `bun run build:prod` - Build and copy to main application
+- `bun run preview` - Preview production build locally
+- `bun run check` - Run TypeScript and linting checks
+
+## Architecture
+
+### Modern Svelte 5 Patterns
+
+The dashboard uses the latest Svelte 5 features:
+
+- **Runes**: `$state`, `$derived`, `$effect` for reactive programming
+- **Modern Props**: `let { data } = $props()` instead of `export let data`
+- **Component Lifecycle**: `onMount()` with cleanup returns
+- **Type Safety**: Full TypeScript integration with generated types
+
+### Chart Components
+
+Built with LayerChart for better Svelte integration:
+
+- **RequestVolumeChart**: Bar chart showing request counts over time
+- **ResponseTimeChart**: Multi-line chart for P50/P95/P99 response times
+- **ErrorRateChart**: Line chart displaying error percentages
+- **ModelUsageChart**: Pie chart for model usage distribution
+
+### Data Flow
+
+1. **Initial Load**: Fetches historical metrics and summary data
+2. **Real-time Updates**: Subscribes to SSE stream for live data
+3. **Reactive State**: Charts automatically update when data changes
+4. **Browser-only Rendering**: Dynamic imports prevent SSR issues
+
+## Deployment
+
+The dashboard is built as a Single Page Application (SPA) and integrated into the main API server:
+
+### Production Build
 
 ```bash
-# Build for production
-bun run build
-
-# Build and copy to FastAPI static directory
+# Build and copy to main application
 bun run build:prod
-
-# Watch mode for development
-bun run watch
 ```
 
-## Project Structure
+This command:
+1. Builds the SPA to the `build/` directory
+2. Copies the entire build folder to `../ccproxy/static/dashboard/`
+3. Makes it available at `/metrics/dashboard` in the API server
 
+### Static File Serving
+
+The API server automatically serves:
+- Dashboard HTML at `/metrics/dashboard`
+- Static assets at `/_app/*` (JS, CSS, images)
+- Favicon at `/metrics/dashboard/favicon.svg`
+
+## API Integration
+
+The dashboard connects to these API endpoints:
+
+- `GET /api/metrics/summary` - Current metrics summary
+- `GET /api/metrics/data` - Historical metrics data
+- `GET /api/metrics/stream` - SSE stream for real-time updates
+- `GET /api/metrics/health` - System health status
+
+## Browser Compatibility
+
+- **Modern Browsers**: Chrome 90+, Firefox 90+, Safari 14+, Edge 90+
+- **Features Used**: ES2022, CSS Grid, CSS Variables, EventSource
+- **Responsive**: Mobile-first design with responsive breakpoints
+
+## Troubleshooting
+
+### Build Issues
+
+If you encounter build errors:
+
+```bash
+# Clear cache and reinstall
+rm -rf node_modules .svelte-kit
+bun install
+bun run build:prod
 ```
-dashboard/
-├── src/
-│   ├── components/         # Core components
-│   │   ├── charts.ts      # Chart.js configurations
-│   │   ├── dashboard.ts   # Main dashboard controller
-│   │   ├── metrics-api.ts # API client
-│   │   └── sse-client.ts  # Server-Sent Events client
-│   ├── types/
-│   │   └── metrics.ts     # TypeScript type definitions
-│   ├── utils/
-│   │   ├── constants.ts   # Configuration constants
-│   │   └── formatters.ts  # Utility functions
-│   ├── styles/
-│   │   └── main.css      # Tailwind CSS and custom styles
-│   └── main.ts           # Application entry point
-├── index.html            # HTML template
-├── package.json          # Dependencies and scripts
-├── tsconfig.json         # TypeScript configuration
-├── vite.config.js        # Vite build configuration
-└── tailwind.config.js    # Tailwind CSS configuration
+
+### Development Server Issues
+
+```bash
+# Restart development server
+bun run dev
 ```
 
-## Integration
+### Chart Loading Issues
 
-The dashboard is served by FastAPI at `/metrics/dashboard`. The build process creates a single HTML file with all assets inlined for easy deployment.
+The charts load dynamically to avoid SSR conflicts. If charts don't appear:
 
-### API Endpoints Used
+1. Check browser console for errors
+2. Verify API endpoints are accessible
+3. Ensure the build includes LayerChart dependencies
 
-- `GET /metrics/summary` - Aggregated metrics summary
-- `GET /metrics/data` - Detailed metrics data with filtering
-- `GET /metrics/stream` - Real-time SSE stream
-- `GET /metrics/health` - System health status
+## Contributing
 
-## Charts
-
-1. **Request Volume**: Time series of incoming requests
-2. **Response Time Distribution**: Average, P95, P99 latencies
-3. **Error Types**: Breakdown of error categories
-4. **Model Usage**: Distribution of requests by AI model
-5. **Cost Analytics**: Cost tracking over time
-6. **Live Activity**: Real-time request feed
-
-## Configuration
-
-The dashboard automatically detects the API base URL and adapts to the current environment. Configuration options are available in `src/utils/constants.ts`.
-
-## Performance
-
-- **Bundle Size**: ~280KB gzipped (single file)
-- **Load Time**: < 2s on fast connections
-- **Real-time Updates**: SSE with automatic reconnection
-- **Chart Performance**: Optimized for up to 100 data points per chart
-
-## Browser Support
-
-Modern browsers with ES2020 support:
-- Chrome 85+
-- Firefox 85+
-- Safari 14+
-- Edge 85+
+1. Follow the existing code style and patterns
+2. Use Svelte 5 runes (`$state`, `$derived`) not legacy patterns
+3. Test responsive design on mobile devices
+4. Ensure TypeScript types are correct
+5. Run `bun run check` before committing

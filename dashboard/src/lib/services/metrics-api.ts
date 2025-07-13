@@ -2,15 +2,15 @@ import type {
 	MetricsDataResponse,
 	MetricsHealthResponse,
 	MetricsSummary,
-	MetricType,
+	ApiMetricType,
 	SSEConnectionsResponse,
-} from "../types/metrics";
-import { DASHBOARD_CONFIG } from "../utils/constants";
+} from "$lib/types/metrics";
+import { DASHBOARD_CONFIG } from "$lib/utils/constants";
 
 export interface MetricsDataParams {
 	start_time?: string;
 	end_time?: string;
-	metric_type?: MetricType;
+	metric_type?: ApiMetricType;
 	user_id?: string;
 	session_id?: string;
 	limit?: number;

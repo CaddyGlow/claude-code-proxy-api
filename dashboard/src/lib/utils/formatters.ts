@@ -175,11 +175,11 @@ export function getChartColor(indexOrString: number | string): string {
 	const colors = DASHBOARD_CONFIG.COLORS.chart;
 
 	if (typeof indexOrString === "number") {
-		return colors[indexOrString % colors.length] ?? colors[0];
+		return colors[indexOrString % colors.length] ?? colors[0]!;
 	}
 
 	const index = hashCode(indexOrString) % colors.length;
-	return colors[index] ?? colors[0];
+	return colors[index] ?? colors[0]!;
 }
 
 /**
@@ -189,7 +189,7 @@ export function debounce<T extends (...args: any[]) => any>(
 	func: T,
 	wait: number,
 ): (...args: Parameters<T>) => void {
-	let timeout: NodeJS.Timeout;
+	let timeout: ReturnType<typeof setTimeout>;
 
 	return function executedFunction(...args: Parameters<T>) {
 		const later = () => {

@@ -1,4 +1,4 @@
-import type { MetricType } from "../types/metrics";
+import type { ApiMetricType } from "../types/metrics";
 
 // Dashboard configuration constants
 export const DASHBOARD_CONFIG = {
@@ -121,7 +121,7 @@ export const DASHBOARD_CONFIG = {
 } as const;
 
 // Metric type definitions
-export const METRIC_TYPES: Record<string, MetricType> = {
+export const METRIC_TYPES: Record<string, ApiMetricType> = {
 	REQUEST: "request",
 	RESPONSE: "response",
 	ERROR: "error",

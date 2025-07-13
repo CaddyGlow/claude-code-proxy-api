@@ -1,8 +1,8 @@
-import type { MetricType, SSEEvent } from "../types/metrics";
-import { DASHBOARD_CONFIG } from "../utils/constants";
+import type { ApiMetricType, SSEEvent } from "$lib/types/metrics";
+import { DASHBOARD_CONFIG } from "$lib/utils/constants";
 
 export interface SSEConnectionParams {
-	metric_types?: MetricType[];
+	metric_types?: ApiMetricType[];
 	user_id?: string;
 	session_id?: string;
 	subscription_types?: string[];
@@ -19,7 +19,7 @@ export class SSEMetricsClient {
 	private maxReconnectAttempts = 5;
 	private reconnectDelay = 1000; // Start with 1 second
 	private maxReconnectDelay = 30000; // Max 30 seconds
-	private reconnectTimeout: NodeJS.Timeout | null = null;
+	private reconnectTimeout: number | null = null;
 	private isConnecting = false;
 	private listeners: {
 		message: SSEEventHandler[];

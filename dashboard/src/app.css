@@ -1,0 +1,271 @@
+@import "tailwindcss";
+
+/* Custom Claude theme variables and overrides */
+:root {
+	--claude-50: #fef7f0;
+	--claude-100: #fdede0;
+	--claude-200: #fad8c0;
+	--claude-300: #f6bd95;
+	--claude-400: #f19968;
+	--claude-500: #ed7943;
+	--claude-600: #de5f2c;
+	--claude-700: #b84a21;
+	--claude-800: #933e20;
+	--claude-900: #76361f;
+}
+
+/* Custom utility classes for Claude branding */
+.text-claude-500 {
+	color: var(--claude-500);
+}
+
+.text-claude-600 {
+	color: var(--claude-600);
+}
+
+.bg-claude-500 {
+	background-color: var(--claude-500);
+}
+
+.bg-claude-600 {
+	background-color: var(--claude-600);
+}
+
+.hover\:bg-claude-700:hover {
+	background-color: var(--claude-700);
+}
+
+.border-claude-200 {
+	border-color: var(--claude-200);
+}
+
+/* Focus utilities using CSS variables */
+.focus-claude:focus {
+	outline: none;
+	border-color: var(--claude-500);
+	box-shadow: 0 0 0 1px var(--claude-500);
+}
+
+/* Chart.js styling overrides */
+.chart-container {
+	position: relative;
+	height: 300px;
+	margin: 1rem 0;
+}
+
+/* Loading animation */
+.loading-spinner {
+	animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+	from {
+		transform: rotate(0deg);
+	}
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+/* Additional component styles migrated from vanilla dashboard */
+.card {
+	background-color: white;
+	border-radius: 0.5rem;
+	box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+	border: 1px solid #e5e7eb;
+	padding: 1.5rem;
+}
+
+.metric-card {
+	background-color: white;
+	border-radius: 0.5rem;
+	box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+	border: 1px solid #e5e7eb;
+	padding: 1.5rem;
+	transition: box-shadow 200ms;
+}
+
+.metric-card:hover {
+	box-shadow:
+		0 4px 6px -1px rgba(0, 0, 0, 0.1),
+		0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.metric-value {
+	font-size: 1.5rem;
+	font-weight: 700;
+	color: #111827;
+}
+
+.metric-label {
+	font-size: 0.875rem;
+	font-weight: 500;
+	color: #6b7280;
+	text-transform: uppercase;
+	letter-spacing: 0.05em;
+}
+
+.chart-container {
+	background-color: white;
+	border-radius: 0.5rem;
+	box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+	border: 1px solid #e5e7eb;
+	padding: 1.5rem;
+	min-height: 300px;
+	display: flex;
+	flex-direction: column;
+}
+
+.chart-header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	margin-bottom: 1rem;
+	padding-bottom: 1rem;
+	border-bottom: 1px solid #e5e7eb;
+}
+
+.chart-title {
+	font-size: 1.125rem;
+	font-weight: 600;
+	color: #111827;
+}
+
+.activity-item {
+	display: flex;
+	align-items: center;
+	gap: 0.75rem;
+	padding: 0.75rem;
+	border-radius: 0.5rem;
+	transition: background-color 200ms;
+}
+
+.activity-item:hover {
+	background-color: #f9fafb;
+}
+
+.activity-time {
+	font-size: 0.75rem;
+	color: #6b7280;
+	font-family:
+		ui-monospace, SFMono-Regular, "SF Mono", Consolas, "Liberation Mono", Menlo,
+		monospace;
+}
+
+.activity-content {
+	flex: 1;
+	min-width: 0;
+}
+
+.activity-title {
+	font-size: 0.875rem;
+	font-weight: 500;
+	color: #111827;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.activity-subtitle {
+	font-size: 0.75rem;
+	color: #6b7280;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.spinner {
+	display: inline-block;
+	width: 1rem;
+	height: 1rem;
+	border: 2px solid #e5e7eb;
+	border-radius: 50%;
+	animation: spin 1s linear infinite;
+	border-top-color: var(--claude-600);
+}
+
+.scrollbar-thin {
+	scrollbar-width: thin;
+	scrollbar-color: rgb(203 213 225) transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+	width: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+	background-color: rgb(203 213 225);
+	border-radius: 3px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+	background-color: rgb(148 163 184);
+}
+
+/* Custom animations */
+@keyframes fadeInUp {
+	from {
+		opacity: 0;
+		transform: translateY(20px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+.animate-fade-in-up {
+	animation: fadeInUp 0.6s ease-out;
+}
+
+/* Real-time indicator */
+.pulse-dot {
+	width: 0.5rem;
+	height: 0.5rem;
+	background-color: #10b981;
+	border-radius: 9999px;
+	animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.pulse-dot::before {
+	content: "";
+	position: absolute;
+	width: 0.5rem;
+	height: 0.5rem;
+	background-color: #10b981;
+	border-radius: 9999px;
+	animation: ping 1s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@keyframes pulse {
+	0%,
+	100% {
+		opacity: 1;
+	}
+	50% {
+		opacity: 0.5;
+	}
+}
+
+@keyframes ping {
+	0% {
+		transform: scale(1);
+		opacity: 1;
+	}
+	75%,
+	100% {
+		transform: scale(2);
+		opacity: 0;
+	}
+}
+
+/* Responsive design utilities */
+@media (max-width: 640px) {
+	.chart-container {
+		height: 250px;
+	}
+}

@@ -1,6 +1,6 @@
 // Type definitions for Claude Code Proxy Metrics API
 
-export type MetricType =
+export type ApiMetricType =
 	| "request"
 	| "response"
 	| "error"
@@ -11,7 +11,7 @@ export type MetricType =
 export interface BaseMetricRecord {
 	id: string;
 	timestamp: string;
-	metric_type: MetricType;
+	metric_type: ApiMetricType;
 	request_id?: string;
 	user_id?: string;
 	session_id?: string;
@@ -122,41 +122,39 @@ export interface MetricsSummary {
 	time_period: {
 		start_time: string;
 		end_time: string;
+		duration_hours: number;
 	};
-	request_metrics: {
-		total_requests: number;
-		successful_requests: number;
-		failed_requests: number;
+	requests: {
+		total: number;
+		successful: number;
+		failed: number;
 		error_rate: number;
-	};
-	response_metrics: {
-		avg_response_time_ms: number;
-		p95_response_time_ms: number;
-		p99_response_time_ms: number;
+		success_rate: number;
 	};
 	performance: {
 		avg_response_time_ms: number;
 		p95_response_time_ms: number;
 		p99_response_time_ms: number;
 	};
-	token_metrics: {
-		total_input_tokens: number;
-		total_output_tokens: number;
-		total_tokens: number;
+	tokens: {
+		total_input: number;
+		total_output: number;
+		total: number;
+		avg_input_per_request: number;
+		avg_output_per_request: number;
 	};
-	cost_metrics: {
-		total_cost: number;
-		avg_cost_per_request: number;
+	costs: {
+		total: number;
+		avg_per_request: number;
+		currency: string;
 	};
-	usage_patterns: {
+	usage: {
 		unique_users: number;
 		peak_requests_per_minute: number;
+		requests_per_hour: number;
 	};
-	model_usage?: Record<string, number>;
-	error_types?: Record<string, number>;
-	// API also uses these field names
-	models?: Record<string, number>;
-	errors?: Record<string, number>;
+	models: Record<string, number>;
+	errors: Record<string, number>;
 }
 
 export interface MetricsDataResponse {
@@ -174,7 +172,7 @@ export interface MetricsDataResponse {
 	filters: {
 		start_time?: string;
 		end_time?: string;
-		metric_type?: MetricType;
+		metric_type?: ApiMetricType;
 		user_id?: string;
 		session_id?: string;
 	};
@@ -207,7 +205,7 @@ export interface SSEConnectionsResponse {
 		id: string;
 		created_at: string;
 		filters: {
-			metric_types?: MetricType[];
+			metric_types?: ApiMetricType[];
 			user_id?: string;
 			session_id?: string;
 		};
