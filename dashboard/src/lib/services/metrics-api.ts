@@ -4,8 +4,8 @@ import type {
 	MetricsStatusResponse,
 	QueryResponse,
 	AnalyticsRequestParams,
-} from '$lib/types/metrics';
-import { MetricsApiError } from '$lib/types/metrics';
+} from "$lib/types/metrics";
+import { MetricsApiError } from "$lib/types/metrics";
 
 /**
  * Centralized API client for Analytics API integration
@@ -14,7 +14,7 @@ export class MetricsApiClient {
 	private readonly baseUrl: string;
 	private readonly timeout: number;
 
-	constructor(baseUrl = '/metrics', timeout = 10000) {
+	constructor(baseUrl = "/metrics", timeout = 10000) {
 		this.baseUrl = baseUrl;
 		this.timeout = timeout;
 	}
@@ -32,13 +32,16 @@ export class MetricsApiClient {
 		});
 
 		const queryString = searchParams.toString();
-		return queryString ? `?${queryString}` : '';
+		return queryString ? `?${queryString}` : "";
 	}
 
 	/**
 	 * Make HTTP request with timeout and error handling
 	 */
-	private async makeRequest(url: string, options: RequestInit = {}): Promise<Response> {
+	private async makeRequest(
+		url: string,
+		options: RequestInit = {},
+	): Promise<Response> {
 		const controller = new AbortController();
 		const timeoutId = setTimeout(() => controller.abort(), this.timeout);
 
@@ -47,9 +50,9 @@ export class MetricsApiClient {
 				...options,
 				signal: controller.signal,
 				headers: {
-					'Content-Type': 'application/json',
-					...options.headers
-				}
+					"Content-Type": "application/json",
+					...options.headers,
+				},
 			});
 
 			clearTimeout(timeoutId);
@@ -58,7 +61,7 @@ export class MetricsApiClient {
 				throw new MetricsApiError(
 					`HTTP ${response.status}: ${response.statusText}`,
 					response.status,
-					response
+					response,
 				);
 			}
 
@@ -70,14 +73,14 @@ export class MetricsApiClient {
 				throw error;
 			}
 
-			if (error instanceof DOMException && error.name === 'AbortError') {
-				throw new MetricsApiError('Request timeout', 408, new Response());
+			if (error instanceof DOMException && error.name === "AbortError") {
+				throw new MetricsApiError("Request timeout", 408, new Response());
 			}
 
 			throw new MetricsApiError(
-				`Network error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+				`Network error: ${error instanceof Error ? error.message : "Unknown error"}`,
 				0,
-				new Response()
+				new Response(),
 			);
 		}
 	}
@@ -85,7 +88,9 @@ export class MetricsApiClient {
 	/**
 	 * Get analytics data
 	 */
-	public async getAnalytics(params: AnalyticsRequestParams = {}): Promise<AnalyticsResponse> {
+	public async getAnalytics(
+		params: AnalyticsRequestParams = {},
+	): Promise<AnalyticsResponse> {
 		const queryString = this.buildQueryString(params);
 		const url = `${this.baseUrl}/analytics${queryString}`;
 
@@ -118,8 +123,8 @@ export class MetricsApiClient {
 		const url = `${this.baseUrl}/query`;
 
 		const response = await this.makeRequest(url, {
-			method: 'POST',
-			body: JSON.stringify({ query })
+			method: "POST",
+			body: JSON.stringify({ query }),
 		});
 
 		return await response.json();
@@ -143,7 +148,7 @@ export class MetricsApiClient {
 	public async isStorageHealthy(): Promise<boolean> {
 		try {
 			const health = await this.getHealth();
-			return health.status === 'healthy';
+			return health.status === "healthy";
 		} catch (_error) {
 			return false;
 		}

@@ -1,11 +1,11 @@
-import { vi, expect } from 'vitest';
-import { tick } from 'svelte';
+import { vi, expect } from "vitest";
+import { tick } from "svelte";
 
 /**
  * Wait for all pending promises to resolve
  */
 export async function flushPromises(): Promise<void> {
-	await new Promise(resolve => setTimeout(resolve, 0));
+	await new Promise((resolve) => setTimeout(resolve, 0));
 	await tick();
 }
 
@@ -13,7 +13,7 @@ export async function flushPromises(): Promise<void> {
  * Wait for a specific amount of time
  */
 export function waitFor(ms: number): Promise<void> {
-	return new Promise(resolve => setTimeout(resolve, ms));
+	return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /**
@@ -22,7 +22,7 @@ export function waitFor(ms: number): Promise<void> {
 export async function waitForCondition(
 	condition: () => boolean,
 	timeout = 1000,
-	interval = 50
+	interval = 50,
 ): Promise<void> {
 	const start = Date.now();
 
@@ -37,7 +37,9 @@ export async function waitForCondition(
 /**
  * Create a mock function that can be used to track calls
  */
-export function createMockFn<T extends (...args: any[]) => any>(implementation?: T): T {
+export function createMockFn<T extends (...args: any[]) => any>(
+	implementation?: T,
+): T {
 	return vi.fn(implementation) as unknown as T;
 }
 
@@ -98,7 +100,7 @@ export function mockConsole(): {
  * Create a promise that resolves after specified time (for fake timers)
  */
 export function createDelayedPromise<T>(value: T, delay: number): Promise<T> {
-	return new Promise(resolve => {
+	return new Promise((resolve) => {
 		setTimeout(() => resolve(value), delay);
 	});
 }
@@ -106,16 +108,23 @@ export function createDelayedPromise<T>(value: T, delay: number): Promise<T> {
 /**
  * Helper to test error boundaries and error states
  */
-export function expectToThrow(fn: () => void, expectedError?: string | RegExp): void {
+export function expectToThrow(
+	fn: () => void,
+	expectedError?: string | RegExp,
+): void {
 	try {
 		fn();
-		throw new Error('Expected function to throw');
+		throw new Error("Expected function to throw");
 	} catch (error) {
 		if (expectedError) {
-			if (typeof expectedError === 'string') {
-				expect(error instanceof Error ? error.message : error).toBe(expectedError);
+			if (typeof expectedError === "string") {
+				expect(error instanceof Error ? error.message : error).toBe(
+					expectedError,
+				);
 			} else {
-				expect(error instanceof Error ? error.message : error).toMatch(expectedError);
+				expect(error instanceof Error ? error.message : error).toMatch(
+					expectedError,
+				);
 			}
 		}
 	}
@@ -126,17 +135,21 @@ export function expectToThrow(fn: () => void, expectedError?: string | RegExp): 
  */
 export async function expectToThrowAsync(
 	fn: () => Promise<void>,
-	expectedError?: string | RegExp
+	expectedError?: string | RegExp,
 ): Promise<void> {
 	try {
 		await fn();
-		throw new Error('Expected function to throw');
+		throw new Error("Expected function to throw");
 	} catch (error) {
 		if (expectedError) {
-			if (typeof expectedError === 'string') {
-				expect(error instanceof Error ? error.message : error).toBe(expectedError);
+			if (typeof expectedError === "string") {
+				expect(error instanceof Error ? error.message : error).toBe(
+					expectedError,
+				);
 			} else {
-				expect(error instanceof Error ? error.message : error).toMatch(expectedError);
+				expect(error instanceof Error ? error.message : error).toMatch(
+					expectedError,
+				);
 			}
 		}
 	}
@@ -147,14 +160,14 @@ export async function expectToThrowAsync(
  */
 export function createTestMetricCard(overrides: Partial<any> = {}) {
 	return {
-		id: 'test-metric',
-		label: 'Test Metric',
-		value: '100',
-		icon: 'requests',
-		iconColor: 'blue',
-		change: '+5.2%',
-		changeColor: 'green',
-		...overrides
+		id: "test-metric",
+		label: "Test Metric",
+		value: "100",
+		icon: "requests",
+		iconColor: "blue",
+		change: "+5.2%",
+		changeColor: "green",
+		...overrides,
 	};
 }
 
@@ -167,14 +180,14 @@ export function createTestAnalyticsData(overrides: Partial<any> = {}) {
 			total_requests: 1000,
 			success_rate: 98.5,
 			avg_response_time: 250,
-			total_cost: 12.50,
+			total_cost: 12.5,
 			error_count: 15,
-			unique_models: 2
+			unique_models: 2,
 		},
 		time_series: [],
 		models: [],
 		service_types: [],
 		errors: [],
-		...overrides
+		...overrides,
 	};
 }

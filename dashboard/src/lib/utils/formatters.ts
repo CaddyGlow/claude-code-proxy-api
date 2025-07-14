@@ -2,11 +2,11 @@
  * Format bytes to human-readable string
  */
 export function formatBytes(bytes: number, decimals = 2): string {
-	if (bytes === 0) return '0 Bytes';
+	if (bytes === 0) return "0 Bytes";
 
 	const k = 1024;
 	const dm = decimals < 0 ? 0 : decimals;
-	const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+	const sizes = ["Bytes", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"];
 
 	const i = Math.floor(Math.log(bytes) / Math.log(k));
 
@@ -18,7 +18,7 @@ export function formatBytes(bytes: number, decimals = 2): string {
  */
 export function debounce<T extends (...args: any[]) => any>(
 	func: T,
-	wait: number
+	wait: number,
 ): (...args: Parameters<T>) => void {
 	let timeout: ReturnType<typeof setTimeout> | null = null;
 
@@ -41,7 +41,7 @@ export function debounce<T extends (...args: any[]) => any>(
  */
 export function throttle<T extends (...args: any[]) => any>(
 	func: T,
-	wait: number
+	wait: number,
 ): (...args: Parameters<T>) => void {
 	let inThrottle = false;
 	let lastFunc: ReturnType<typeof setTimeout> | null = null;
@@ -56,12 +56,15 @@ export function throttle<T extends (...args: any[]) => any>(
 			if (lastFunc) {
 				clearTimeout(lastFunc);
 			}
-			lastFunc = setTimeout(() => {
-				if (Date.now() - lastRan >= wait) {
-					func(...args);
-					lastRan = Date.now();
-				}
-			}, wait - (Date.now() - lastRan));
+			lastFunc = setTimeout(
+				() => {
+					if (Date.now() - lastRan >= wait) {
+						func(...args);
+						lastRan = Date.now();
+					}
+				},
+				wait - (Date.now() - lastRan),
+			);
 		}
 	};
 }
@@ -69,12 +72,16 @@ export function throttle<T extends (...args: any[]) => any>(
 /**
  * Format currency to string with proper decimals
  */
-export function formatCurrency(amount: number, currency = 'USD', decimals = 2): string {
-	return new Intl.NumberFormat('en-US', {
-		style: 'currency',
+export function formatCurrency(
+	amount: number,
+	currency = "USD",
+	decimals = 2,
+): string {
+	return new Intl.NumberFormat("en-US", {
+		style: "currency",
 		currency: currency,
 		minimumFractionDigits: decimals,
-		maximumFractionDigits: decimals
+		maximumFractionDigits: decimals,
 	}).format(amount);
 }
 
@@ -82,9 +89,9 @@ export function formatCurrency(amount: number, currency = 'USD', decimals = 2): 
  * Format number with proper locale formatting
  */
 export function formatNumber(num: number, decimals = 0): string {
-	return new Intl.NumberFormat('en-US', {
+	return new Intl.NumberFormat("en-US", {
 		minimumFractionDigits: decimals,
-		maximumFractionDigits: decimals
+		maximumFractionDigits: decimals,
 	}).format(num);
 }
 
@@ -92,10 +99,10 @@ export function formatNumber(num: number, decimals = 0): string {
  * Format percentage with proper decimals
  */
 export function formatPercentage(value: number, decimals = 1): string {
-	return new Intl.NumberFormat('en-US', {
-		style: 'percent',
+	return new Intl.NumberFormat("en-US", {
+		style: "percent",
 		minimumFractionDigits: decimals,
-		maximumFractionDigits: decimals
+		maximumFractionDigits: decimals,
 	}).format(value / 100);
 }
 
@@ -105,14 +112,15 @@ export function formatPercentage(value: number, decimals = 1): string {
 export function formatDuration(seconds: number): string {
 	if (seconds < 60) {
 		return `${seconds.toFixed(1)}s`;
-	}if (seconds < 3600) {
+	}
+	if (seconds < 3600) {
 		const minutes = Math.floor(seconds / 60);
 		const remainingSeconds = seconds % 60;
 		return `${minutes}m ${remainingSeconds.toFixed(0)}s`;
 	}
-		const hours = Math.floor(seconds / 3600);
-		const minutes = Math.floor((seconds % 3600) / 60);
-		return `${hours}h ${minutes}m`;
+	const hours = Math.floor(seconds / 3600);
+	const minutes = Math.floor((seconds % 3600) / 60);
+	return `${hours}h ${minutes}m`;
 }
 
 /**
@@ -125,39 +133,49 @@ export function formatRelativeTime(timestamp: string | Date): string {
 	const diffInSeconds = Math.floor(diffInMs / 1000);
 
 	if (diffInSeconds < 60) {
-		return 'just now';
-	}if (diffInSeconds < 3600) {
-		const minutes = Math.floor(diffInSeconds / 60);
-		return `${minutes} minute${minutes !== 1 ? 's' : ''} ago`;
-	}if (diffInSeconds < 86400) {
-		const hours = Math.floor(diffInSeconds / 3600);
-		return `${hours} hour${hours !== 1 ? 's' : ''} ago`;
+		return "just now";
 	}
-		const days = Math.floor(diffInSeconds / 86400);
-		return `${days} day${days !== 1 ? 's' : ''} ago`;
+	if (diffInSeconds < 3600) {
+		const minutes = Math.floor(diffInSeconds / 60);
+		return `${minutes} minute${minutes !== 1 ? "s" : ""} ago`;
+	}
+	if (diffInSeconds < 86400) {
+		const hours = Math.floor(diffInSeconds / 3600);
+		return `${hours} hour${hours !== 1 ? "s" : ""} ago`;
+	}
+	const days = Math.floor(diffInSeconds / 86400);
+	return `${days} day${days !== 1 ? "s" : ""} ago`;
 }
 
 /**
  * Format date time to localized string
  */
-export function formatDateTime(timestamp: string | Date, options?: Intl.DateTimeFormatOptions): string {
+export function formatDateTime(
+	timestamp: string | Date,
+	options?: Intl.DateTimeFormatOptions,
+): string {
 	const date = new Date(timestamp);
 	const defaultOptions: Intl.DateTimeFormatOptions = {
-		year: 'numeric',
-		month: 'short',
-		day: 'numeric',
-		hour: '2-digit',
-		minute: '2-digit',
-		second: '2-digit'
+		year: "numeric",
+		month: "short",
+		day: "numeric",
+		hour: "2-digit",
+		minute: "2-digit",
+		second: "2-digit",
 	};
 
-	return new Intl.DateTimeFormat('en-US', options || defaultOptions).format(date);
+	return new Intl.DateTimeFormat("en-US", options || defaultOptions).format(
+		date,
+	);
 }
 
 /**
  * Calculate percentage change between two values
  */
-export function calculatePercentageChange(current: number, previous: number): number {
+export function calculatePercentageChange(
+	current: number,
+	previous: number,
+): number {
 	if (previous === 0) {
 		return current === 0 ? 0 : 100;
 	}
@@ -167,9 +185,12 @@ export function calculatePercentageChange(current: number, previous: number): nu
 /**
  * Format percentage change with proper sign and color indication
  */
-export function formatPercentageChange(current: number, previous: number): {
+export function formatPercentageChange(
+	current: number,
+	previous: number,
+): {
 	text: string;
-	color: 'green' | 'red' | 'gray'
+	color: "green" | "red" | "gray";
 } {
 	const change = calculatePercentageChange(current, previous);
 	const absChange = Math.abs(change);
@@ -177,18 +198,19 @@ export function formatPercentageChange(current: number, previous: number): {
 	if (change > 0) {
 		return {
 			text: `+${absChange.toFixed(1)}%`,
-			color: 'green'
-		};
-	}if (change < 0) {
-		return {
-			text: `-${absChange.toFixed(1)}%`,
-			color: 'red'
+			color: "green",
 		};
 	}
+	if (change < 0) {
 		return {
-			text: '0%',
-			color: 'gray'
+			text: `-${absChange.toFixed(1)}%`,
+			color: "red",
 		};
+	}
+	return {
+		text: "0%",
+		color: "gray",
+	};
 }
 
 /**
@@ -196,16 +218,16 @@ export function formatPercentageChange(current: number, previous: number): {
  */
 export function getChartColor(index: number): string {
 	const colors = [
-		'#3B82F6', // blue
-		'#10B981', // green
-		'#F59E0B', // yellow
-		'#EF4444', // red
-		'#8B5CF6', // purple
-		'#06B6D4', // cyan
-		'#EC4899', // pink
-		'#84CC16', // lime
-		'#F97316', // orange
-		'#6366F1'  // indigo
+		"#3B82F6", // blue
+		"#10B981", // green
+		"#F59E0B", // yellow
+		"#EF4444", // red
+		"#8B5CF6", // purple
+		"#06B6D4", // cyan
+		"#EC4899", // pink
+		"#84CC16", // lime
+		"#F97316", // orange
+		"#6366F1", // indigo
 	];
 	return colors[index % colors.length];
 }
@@ -217,7 +239,7 @@ export function hashCode(str: string): number {
 	let hash = 0;
 	for (let i = 0; i < str.length; i++) {
 		const char = str.charCodeAt(i);
-		hash = ((hash << 5) - hash) + char;
+		hash = (hash << 5) - hash + char;
 		hash = hash & hash; // Convert to 32bit integer
 	}
 	return Math.abs(hash);

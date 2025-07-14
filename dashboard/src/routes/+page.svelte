@@ -264,22 +264,33 @@ function setupSSE() {
 
 							// Add summary info
 							if (data.summary) {
-								notificationDetails.push(`${data.summary.total_requests} requests`);
+								notificationDetails.push(
+									`${data.summary.total_requests} requests`,
+								);
 
-								if (data.summary.total_tokens_input > 0 || data.summary.total_tokens_output > 0) {
-									const totalTokens = (data.summary.total_tokens_input || 0) + (data.summary.total_tokens_output || 0);
-									notificationDetails.push(`${totalTokens.toLocaleString()} tokens`);
+								if (
+									data.summary.total_tokens_input > 0 ||
+									data.summary.total_tokens_output > 0
+								) {
+									const totalTokens =
+										(data.summary.total_tokens_input || 0) +
+										(data.summary.total_tokens_output || 0);
+									notificationDetails.push(
+										`${totalTokens.toLocaleString()} tokens`,
+									);
 								}
 
 								if (data.summary.total_cost_usd > 0) {
-									notificationDetails.push(`$${data.summary.total_cost_usd.toFixed(4)}`);
+									notificationDetails.push(
+										`$${data.summary.total_cost_usd.toFixed(4)}`,
+									);
 								}
 							}
 
 							// Add most active model
 							if (data.model_stats && data.model_stats.length > 0) {
 								const topModel = data.model_stats.reduce((prev, current) =>
-									(prev.request_count > current.request_count) ? prev : current
+									prev.request_count > current.request_count ? prev : current,
 								);
 								if (topModel.request_count > 0) {
 									notificationDetails.push(`Top: ${topModel.model}`);
@@ -289,17 +300,18 @@ function setupSSE() {
 							// Add service type info
 							if (data.service_breakdown && data.service_breakdown.length > 0) {
 								const activeServices = data.service_breakdown
-									.filter(s => s.request_count > 0)
-									.map(s => s.service_type.replace('_service', ''))
-									.join(', ');
+									.filter((s) => s.request_count > 0)
+									.map((s) => s.service_type.replace("_service", ""))
+									.join(", ");
 								if (activeServices) {
 									notificationDetails.push(`Services: ${activeServices}`);
 								}
 							}
 
-							const detailedMessage = notificationDetails.length > 0
-								? `Update: ${notificationDetails.join(' | ')}`
-								: "New data available";
+							const detailedMessage =
+								notificationDetails.length > 0
+									? `Update: ${notificationDetails.join(" | ")}`
+									: "New data available";
 
 							addNotification(detailedMessage);
 						}

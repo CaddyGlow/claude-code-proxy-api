@@ -1,12 +1,12 @@
 <script lang="ts">
-
 import type { ModelUsageData } from "$lib/types/metrics";
 
 // Utility function for formatting numbers
 function _formatNumber(num: number): string {
 	if (num >= 1000000) {
 		return `${(num / 1000000).toFixed(1)}M`;
-	}if (num >= 1000) {
+	}
+	if (num >= 1000) {
 		return `${(num / 1000).toFixed(1)}K`;
 	}
 	return num.toString();
@@ -18,7 +18,11 @@ interface Props {
 	isFlashing?: boolean;
 }
 
-const { modelData, class: className = "", isFlashing = false }: Props = $props();
+const {
+	modelData,
+	class: className = "",
+	isFlashing = false,
+}: Props = $props();
 
 // Prepare chart data using $derived for reactivity
 const _chartData = $derived.by(() => {

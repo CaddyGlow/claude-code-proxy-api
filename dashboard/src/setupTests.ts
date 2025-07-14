@@ -1,23 +1,11 @@
-import { vi, beforeAll, afterEach, afterAll } from 'vitest';
-import '@testing-library/jest-dom/vitest';
-import { server } from './test-utils/mocks/server';
+import { vi, beforeAll, afterEach, afterAll } from "vitest";
+import "@testing-library/jest-dom/vitest";
+import { server } from "./test-utils/mocks/server";
 
-// Setup DOM environment if not available
-if (typeof document === 'undefined') {
-	const { JSDOM } = await import('jsdom');
-	const dom = new JSDOM('<!DOCTYPE html><html><body></body></html>', {
-		url: 'http://localhost',
-		pretendToBeVisual: true,
-		resources: 'usable'
-	});
-	
-	Object.assign(globalThis, {
-		window: dom.window,
-		document: dom.window.document,
-		navigator: dom.window.navigator,
-		HTMLElement: dom.window.HTMLElement,
-		Node: dom.window.Node
-	});
+// Ensure DOM environment is available for JSDOM
+if (typeof window === "undefined") {
+	console.log("Setting up DOM for testing...");
+	// The jsdom environment should handle this automatically via vitest config
 }
 
 beforeAll(() => {
@@ -44,11 +32,23 @@ afterAll(() => {
 	CONNECTING: 0,
 	OPEN: 1,
 	CLOSED: 2,
-	url: '',
+	url: "",
 	withCredentials: false,
 	onopen: null,
 	onmessage: null,
 	onerror: null,
+}));
+
+// Mock app environment globally
+vi.mock("$app/environment", () => ({
+	browser: true,
+	dev: true,
+}));
+
+// Mock version utilities globally
+vi.mock("$lib/version", () => ({
+	formatVersionForDisplay: vi.fn().mockReturnValue("v1.0.0"),
+	isDevelopmentVersion: vi.fn().mockReturnValue(true),
 }));
 
 // Mock IntersectionObserver
@@ -69,8 +69,8 @@ afterAll(() => {
 const originalConsoleWarn = console.warn;
 console.warn = (...args: any[]) => {
 	if (
-		typeof args[0] === 'string' &&
-		(args[0].includes('LayerChart') || args[0].includes('D3'))
+		typeof args[0] === "string" &&
+		(args[0].includes("LayerChart") || args[0].includes("D3"))
 	) {
 		return;
 	}

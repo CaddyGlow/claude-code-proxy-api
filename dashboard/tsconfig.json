@@ -10,5 +10,12 @@
 		"sourceMap": true,
 		"strict": true,
 		"moduleResolution": "bundler"
-	}
+	},
+	"exclude": [
+		"**/*.test.ts",
+		"**/*.spec.ts",
+		"**/test-utils/**",
+		"**/e2e/**",
+		"src/setupTests.ts"
+	]
 }

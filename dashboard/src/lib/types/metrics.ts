@@ -79,7 +79,12 @@ export interface QueryResponse {
 }
 
 export interface MetricsStreamEvent {
-	type: 'connection' | 'analytics_update' | 'heartbeat' | 'error' | 'disconnect';
+	type:
+		| "connection"
+		| "analytics_update"
+		| "heartbeat"
+		| "error"
+		| "disconnect";
 	message: string;
 	timestamp: string;
 	data?: AnalyticsResponse;
@@ -95,9 +100,15 @@ export interface MetricCard {
 	changeColor: string;
 }
 
-export type ServiceType = 'anthropic' | 'openai';
+export type ServiceType = "anthropic" | "openai";
 
-export type ApiMetricType = 'total_requests' | 'successful_requests' | 'failed_requests' | 'avg_response_time' | 'total_cost' | 'error_count';
+export type ApiMetricType =
+	| "total_requests"
+	| "successful_requests"
+	| "failed_requests"
+	| "avg_response_time"
+	| "total_cost"
+	| "error_count";
 
 export interface AnalyticsRequestParams {
 	hours?: number;
@@ -156,7 +167,7 @@ export class MetricsApiError extends Error {
 
 	constructor(message: string, status: number, response: Response) {
 		super(message);
-		this.name = 'MetricsApiError';
+		this.name = "MetricsApiError";
 		this.status = status;
 		this.response = response;
 	}
