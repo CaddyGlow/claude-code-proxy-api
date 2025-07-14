@@ -9,12 +9,16 @@ export type {
 	ModelUsageData,
 	TimeSeriesData,
 	ServiceType,
+	ApiMetricType,
 	AnalyticsParams,
+	AnalyticsRequestParams,
 	StorageHealthResponse,
 	MetricsStatusResponse,
 	QueryRequest,
 	QueryResponse,
 	ErrorResponse,
+	ChartDataPoint,
 	// Dashboard types
 	MetricCard,
+	MetricsApiError,
 } from "./metrics";

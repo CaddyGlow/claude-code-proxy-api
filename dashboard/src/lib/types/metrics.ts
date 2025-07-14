@@ -1,27 +1,48 @@
-// TypeScript interfaces for the Claude Code Proxy Metrics API
-// Based on metrics-api-typescript.md documentation
-
-export type ServiceType = "proxy_service" | "claude_sdk_service" | "unknown";
-
-export type ApiMetricType = "total_requests" | "successful_requests" | "failed_requests" | "avg_response_time";
-
-// Analytics API Response Types
 export interface AnalyticsResponse {
 	summary: {
 		total_requests: number;
 		successful_requests: number;
-		failed_requests: number;
+		success_rate: number;
 		avg_response_time: number;
-		median_response_time: number;
-		p95_response_time: number;
+		total_cost: number;
+		total_cost_usd: number;
+		error_count: number;
+		unique_models: number;
 		total_tokens_input: number;
 		total_tokens_output: number;
-		total_cost_usd: number;
 	};
+	time_series: Array<{
+		timestamp: string;
+		requests: number;
+		success_rate: number;
+		avg_response_time: number;
+		cost: number;
+		errors: number;
+	}>;
+	models: Array<{
+		model: string;
+		requests: number;
+		success_rate: number;
+		avg_response_time: number;
+		cost: number;
+		errors: number;
+	}>;
+	service_types: Array<{
+		service_type: string;
+		requests: number;
+		success_rate: number;
+		avg_response_time: number;
+		cost: number;
+		errors: number;
+	}>;
+	errors: Array<{
+		error_type: string;
+		count: number;
+		percentage: number;
+	}>;
 	hourly_data: Array<{
-		hour: string; // ISO datetime string
+		hour: string;
 		request_count: number;
-		error_count: number;
 	}>;
 	model_stats: Array<{
 		model: string;
@@ -30,154 +51,113 @@ export interface AnalyticsResponse {
 		total_cost: number;
 	}>;
 	service_breakdown: Array<{
-		service_type: ServiceType;
+		service_type: string;
 		request_count: number;
-		avg_response_time: number;
-		median_response_time: number;
-		p95_response_time: number;
-		total_cost: number;
 	}>;
-	query_time: number;
-	query_params: {
-		start_time: number | null;
-		end_time: number | null;
-		model: string | null;
-		service_type: string | null;
-		hours: number | null;
-	};
 }
 
-// SSE Stream Event Types
-export type MetricsStreamEvent =
-	| ConnectionEvent
-	| AnalyticsUpdateEvent
-	| HeartbeatEvent
-	| ErrorEvent
-	| DisconnectEvent;
-
-export interface BaseEvent {
-	timestamp: number;
-}
-
-export interface ConnectionEvent extends BaseEvent {
-	type: "connection";
-	message: string;
-}
-
-export interface AnalyticsUpdateEvent extends BaseEvent {
-	type: "analytics_update";
-	data: AnalyticsResponse;
-}
-
-export interface HeartbeatEvent extends BaseEvent {
-	type: "heartbeat";
-	stats: {
-		total_requests: number;
-		timestamp: number;
-	};
-}
-
-export interface ErrorEvent extends BaseEvent {
-	type: "error";
-	message: string;
-}
-
-export interface DisconnectEvent extends BaseEvent {
-	type: "disconnect";
-	message: string;
-}
-
-// Storage Health Response
 export interface StorageHealthResponse {
-	status:
-		| "healthy"
-		| "unhealthy"
-		| "unavailable"
-		| "not_initialized"
-		| "connection_failed";
-	storage_backend: string;
-	enabled: boolean;
-	database_path?: string;
-	request_count?: number;
-	pool_size?: number;
-	error?: string;
-	reason?: string;
+	status: string;
+	database_size: string;
+	total_records: number;
+	last_cleanup: string;
+	retention_days: number;
 }
 
-// Metrics Status Response
 export interface MetricsStatusResponse {
-	status: "healthy";
-	prometheus_enabled: string; // "true" | "false"
-	observability_system: string;
-}
-
-// Query Request/Response Types
-export interface QueryRequest {
-	sql: string;
-	params?: Array<string | number>;
-	limit?: number; // Default: 1000
+	status: string;
+	uptime: number;
+	version: string;
+	storage_backend: string;
 }
 
 export interface QueryResponse {
-	results: Array<Record<string, any>>;
-	query_time: number;
+	columns: string[];
+	data: Array<Array<string | number>>;
 	row_count: number;
+	execution_time: number;
 }
 
-// Error Response Type
-export interface ErrorResponse {
-	detail: string;
+export interface MetricsStreamEvent {
+	type: 'connection' | 'analytics_update' | 'heartbeat' | 'error' | 'disconnect';
+	message: string;
+	timestamp: string;
+	data?: AnalyticsResponse;
 }
 
-// Dashboard-specific types for UI components
 export interface MetricCard {
 	id: string;
 	label: string;
 	value: string;
 	icon: string;
 	iconColor: string;
-	change?: string;
-	changeColor?: string;
+	change: string;
+	changeColor: string;
 }
 
-// Chart data types for LayerChart integration
-export interface ChartDataPoint {
-	x: string | number | Date;
-	y: number;
-	label?: string;
-	color?: string;
-}
+export type ServiceType = 'anthropic' | 'openai';
 
-export interface ServiceBreakdownData {
-	service_type: ServiceType;
-	request_count: number;
-	avg_response_time: number;
-	median_response_time: number;
-	p95_response_time: number;
-	total_cost: number;
-	percentage: number;
+export type ApiMetricType = 'total_requests' | 'successful_requests' | 'failed_requests' | 'avg_response_time' | 'total_cost' | 'error_count';
+
+export interface AnalyticsRequestParams {
+	hours?: number;
+	service_type?: ServiceType;
+	model?: string;
+	start_time?: string;
+	end_time?: string;
 }
 
 export interface ModelUsageData {
 	model: string;
 	request_count: number;
+	percentage: number;
 	avg_response_time: number;
 	total_cost: number;
-	percentage: number;
-	color?: string;
 }
 
+// Additional chart data types
 export interface TimeSeriesData {
 	timestamp: string;
 	value: number;
-	label?: string;
 }
 
-// Analytics query parameters for API calls
-export interface AnalyticsParams {
-	start_time?: number; // Unix timestamp
-	end_time?: number; // Unix timestamp
-	model?: string;
-	service_type?: ServiceType;
-	hours?: number; // Default: 24, min: 1, max: 168
+export interface ServiceBreakdownData {
+	service_type: string;
+	request_count: number;
+	percentage: number;
+	avg_response_time: number;
+	p95_response_time: number;
+	total_cost: number;
+}
+
+export interface ChartDataPoint {
+	label: string;
+	value: number;
+	timestamp?: string;
+}
+
+export interface QueryRequest {
+	query: string;
+	params?: Record<string, any>;
+}
+
+export interface ErrorResponse {
+	error: string;
+	message: string;
+	status_code: number;
+}
+
+// Alias for existing type
+export type AnalyticsParams = AnalyticsRequestParams;
+
+export class MetricsApiError extends Error {
+	public readonly status: number;
+	public readonly response: Response;
+
+	constructor(message: string, status: number, response: Response) {
+		super(message);
+		this.name = 'MetricsApiError';
+		this.status = status;
+		this.response = response;
+	}
 }

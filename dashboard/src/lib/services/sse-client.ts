@@ -165,7 +165,7 @@ export class SSEMetricsClient {
 		this.clearReconnectTimeout();
 		this.reconnectAttempts++;
 
-		this.reconnectTimeout = setTimeout(() => {
+		this.reconnectTimeout = window.setTimeout(() => {
 			this.connect(params);
 		}, this.reconnectDelay);
 
@@ -181,7 +181,7 @@ export class SSEMetricsClient {
 	 */
 	private clearReconnectTimeout(): void {
 		if (this.reconnectTimeout) {
-			clearTimeout(this.reconnectTimeout);
+			window.clearTimeout(this.reconnectTimeout);
 			this.reconnectTimeout = null;
 		}
 	}

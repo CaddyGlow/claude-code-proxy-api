@@ -8,8 +8,8 @@ import type {
 import { metricsApi } from "$lib/services/metrics-api";
 import { onMount } from "svelte";
 import { browser } from "$app/environment";
+import { isDevelopmentVersion, formatVersionForDisplay } from "$lib/version";
 import MetricCard from "$lib/components/MetricCard.svelte";
-import { formatVersionForDisplay, isDevelopmentVersion } from "$lib/version";
 
 // Dynamic imports for browser-only chart components (to avoid SSR issues with LayerChart)
 let _chartComponents = $state<{
@@ -197,7 +197,7 @@ function playNotificationSound() {
 }
 
 // Flash effect function for live updates
-function triggerFlashEffect() {
+function _triggerFlashEffect() {
 	if (import.meta.env.DEV) {
 		console.log("Triggering flash effect");
 	}
@@ -260,7 +260,7 @@ function setupSSE() {
 
 							// Create detailed notification with analytics info
 							const data = streamEvent.data;
-							let notificationDetails = [];
+							const notificationDetails = [];
 
 							// Add summary info
 							if (data.summary) {
@@ -405,8 +405,11 @@ onMount(() => {
 					<!-- Filter Controls -->
 					<div class="flex items-center space-x-2">
 						<select
-							bind:value={selectedTimeRange}
-							onchange={() => _reloadAnalytics()}
+							value={selectedTimeRange}
+							onchange={(e) => {
+								selectedTimeRange = Number(e.currentTarget.value);
+								_reloadAnalytics();
+							}}
 							class="text-sm border border-gray-300 rounded px-2 py-1"
 						>
 							<option value={1}>Last Hour</option>
@@ -417,11 +420,14 @@ onMount(() => {
 
 						{#if analyticsData?.service_breakdown && analyticsData.service_breakdown.length > 0}
 							<select
-								bind:value={selectedServiceType}
-								onchange={() => _reloadAnalytics()}
+								value={selectedServiceType || ""}
+								onchange={(e) => {
+									selectedServiceType = e.currentTarget.value || null;
+									_reloadAnalytics();
+								}}
 								class="text-sm border border-gray-300 rounded px-2 py-1"
 							>
-								<option value={null}>All Services</option>
+								<option value="">All Services</option>
 								{#each analyticsData.service_breakdown as service}
 									<option value={service.service_type}>{service.service_type}</option>
 								{/each}
@@ -430,11 +436,14 @@ onMount(() => {
 
 						{#if analyticsData?.model_stats && analyticsData.model_stats.length > 0}
 							<select
-								bind:value={selectedModel}
-								onchange={() => _reloadAnalytics()}
+								value={selectedModel || ""}
+								onchange={(e) => {
+									selectedModel = e.currentTarget.value || null;
+									_reloadAnalytics();
+								}}
 								class="text-sm border border-gray-300 rounded px-2 py-1"
 							>
-								<option value={null}>All Models</option>
+								<option value="">All Models</option>
 								{#each analyticsData.model_stats as model}
 									<option value={model.model}>{model.model}</option>
 								{/each}

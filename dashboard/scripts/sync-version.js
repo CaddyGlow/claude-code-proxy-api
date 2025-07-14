@@ -6,9 +6,9 @@
  * and updates package.json to maintain version consistency across the project.
  */
 
-import { readFileSync, writeFileSync } from 'fs';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { readFileSync, writeFileSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -103,7 +103,7 @@ function updatePackageJson(newVersion) {
     const oldVersion = packageData.version;
     packageData.version = newVersion;
 
-    const updatedContent = JSON.stringify(packageData, null, 2) + '\n';
+    const updatedContent = `${JSON.stringify(packageData, null, 2)}\n`;
     writeFileSync(PACKAGE_JSON, updatedContent);
 
     console.log(`Version updated: ${oldVersion} -> ${newVersion}`);
@@ -125,7 +125,7 @@ function generateVersionFile(version, hatchVersion) {
 export const VERSION = '${version}';
 export const HATCH_VERSION = '${hatchVersion}';
 export const IS_DEVELOPMENT = ${version.includes('dev')};
-export const BUILD_TYPE = '${getBuildTypeFromVersion(version)}';
+export const BUILD_TYPE = '${getBuildTypeFromVersion(version)}' as 'development' | 'release' | 'release candidate' | 'alpha' | 'beta';
 export const GENERATED_AT = '${new Date().toISOString()}';
 
 /**
@@ -161,10 +161,15 @@ export function getBuildType(): string {
  * Format version for display
  */
 export function formatVersionForDisplay(includeType: boolean = false): string {
-  if (!includeType || BUILD_TYPE === 'release') {
+  if (!includeType) {
     return \`v\${VERSION}\`;
   }
-
+  
+  // Don't show build type for release builds (it's redundant)
+  if (BUILD_TYPE === 'release') {
+    return \`v\${VERSION}\`;
+  }
+  
   return \`v\${VERSION} (\${BUILD_TYPE})\`;
 }
 `;
@@ -204,7 +209,7 @@ function main() {
     console.log(`Formatted for NPM: ${npmVersion}`);
 
     // Update package.json
-    const result = updatePackageJson(npmVersion);
+    const _result = updatePackageJson(npmVersion);
 
     // Generate version TypeScript file for runtime use
     generateVersionFile(npmVersion, hatchVersion);
