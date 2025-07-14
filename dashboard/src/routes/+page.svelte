@@ -1,48 +1,39 @@
 <script lang="ts">
-
 import type {
 	MetricCard as MetricCardType,
 	AnalyticsResponse,
 	MetricsStreamEvent,
 	ServiceType,
-	// Legacy types for backward compatibility
-	AnyMetric,
-	MetricsSummary,
-} from "$lib/types";
+} from "$lib/types/metrics";
 import { metricsApi } from "$lib/services/metrics-api";
 import { onMount } from "svelte";
 import { browser } from "$app/environment";
+import MetricCard from "$lib/components/MetricCard.svelte";
 
 // Dynamic imports for browser-only chart components (to avoid SSR issues with LayerChart)
-let _chartComponents = $state<{
+let chartComponents = $state<{
 	ModelUsageChart?: any;
 }>({});
 
-console.log("Dashboard loading - LayerChart implementation with Svelte 5");
-
 // Modern Svelte 5 reactive state using new Analytics API
 let analyticsData = $state<AnalyticsResponse | null>(null);
-let _isLoading = $state(true);
+let isLoading = $state(true);
 let eventSource = $state<EventSource | null>(null);
 let notifications = $state<
 	Array<{ id: string; message: string; timestamp: Date }>
 >([]);
 let notificationCount = $state(0);
 
-// Filter states for enhanced dashboard views
-const selectedServiceType = $state<string | null>(null);
-const selectedModel = $state<string | null>(null);
-const selectedTimeRange = $state<number>(24); // Hours
+// Flash effect state for live updates
+let isFlashing = $state(false);
 
-// Legacy state for backward compatibility during transition
-let metricsData = $state<AnyMetric[]>([]);
-let _summaryData = $state<MetricsSummary | null>(null);
-let _summariesHistory = $state<
-	Array<{ timestamp: string; summary: MetricsSummary }>
->([]);
+// Filter states for enhanced dashboard views
+let selectedServiceType = $state<string | null>(null);
+let selectedModel = $state<string | null>(null);
+let selectedTimeRange = $state<number>(24); // Hours
 
 // Derived metrics for cards using new Analytics API
-const _dashboardMetrics = $derived<MetricCardType[]>([
+const dashboardMetrics = $derived<MetricCardType[]>([
 	{
 		id: "total-requests",
 		label: "Total Requests",
@@ -88,244 +79,54 @@ const _dashboardMetrics = $derived<MetricCardType[]>([
 ]);
 
 // Derived data for charts using new Analytics API
-const _serviceBreakdownData = $derived.by(() => {
-	console.log(
-		"🔄 Processing serviceBreakdownData, analyticsData:",
-		analyticsData,
-	);
+const serviceBreakdownData = $derived.by(() => {
 	if (!analyticsData?.service_breakdown) {
-		console.log("❌ No service_breakdown data available");
 		return [];
 	}
 
-	console.log("📊 Raw service_breakdown:", analyticsData.service_breakdown);
 	const total = analyticsData.service_breakdown.reduce(
 		(sum: number, service: any) => sum + service.request_count,
 		0,
 	);
 
-	const result = analyticsData.service_breakdown.map((service: any) => ({
+	return analyticsData.service_breakdown.map((service: any) => ({
 		...service,
 		percentage: total > 0 ? (service.request_count / total) * 100 : 0,
 	}));
-
-	console.log("✅ Processed serviceBreakdownData:", result);
-	return result;
 });
 
-const _modelUsageData = $derived.by(() => {
-	console.log("🔄 Processing modelUsageData, analyticsData:", analyticsData);
+const modelUsageData = $derived.by(() => {
 	if (!analyticsData?.model_stats) {
-		console.log("❌ No model_stats data available");
 		return [];
 	}
 
-	console.log("📊 Raw model_stats:", analyticsData.model_stats);
 	const total = analyticsData.model_stats.reduce(
 		(sum: number, model: any) => sum + model.request_count,
 		0,
 	);
 
-	const result = analyticsData.model_stats.map((model: any) => ({
+	return analyticsData.model_stats.map((model: any) => ({
 		...model,
 		percentage: total > 0 ? (model.request_count / total) * 100 : 0,
 	}));
-
-	console.log("✅ Processed modelUsageData:", result);
-	return result;
 });
 
-const _timeSeriesData = $derived.by(() => {
-	console.log("🔄 Processing timeSeriesData, analyticsData:", analyticsData);
+const timeSeriesData = $derived.by(() => {
 	if (!analyticsData?.hourly_data) {
-		console.log("❌ No hourly_data available");
 		return [];
 	}
 
-	console.log("📊 Raw hourly_data:", analyticsData.hourly_data);
-	const result = analyticsData.hourly_data.map((item: any) => ({
+	return analyticsData.hourly_data.map((item: any) => ({
 		timestamp: item.hour,
 		value: item.request_count,
 		label: `${item.request_count} requests`,
 	}));
-
-	console.log("✅ Processed timeSeriesData:", result);
-	return result;
 });
-
-// Filter metrics by type using $derived
-const _requestMetrics = $derived.by(() => {
-	const filtered = metricsData.filter(
-		(m) =>
-			m.metric_type === "request" &&
-			// Filter out browser/system requests, focus on actual API calls
-			!m.path?.includes(".well-known") &&
-			!m.path?.includes("favicon") &&
-			m.path !== "/" &&
-			m.status_code !== 404,
-	);
-
-	console.log("requestMetrics - total metrics:", metricsData.length);
-	console.log("requestMetrics - filtered request metrics:", filtered.length);
-	console.log("requestMetrics - sample filtered metric:", filtered[0]);
-
-	return filtered;
-});
-
-// Create historical summaries from raw metrics data
-function createHistoricalSummaries(
-	metrics: AnyMetric[],
-): Array<{ timestamp: string; summary: MetricsSummary }> {
-	console.log(
-		"createHistoricalSummaries called with:",
-		metrics.length,
-		"metrics",
-	);
-	// Group metrics by time intervals (e.g., every 5 minutes)
-	const timeGroups = new Map<string, AnyMetric[]>();
-
-	metrics.forEach((metric) => {
-		const date = new Date(metric.timestamp);
-		// Round to nearest 5 minutes for grouping
-		date.setMinutes(Math.floor(date.getMinutes() / 5) * 5, 0, 0);
-		const key = date.toISOString();
-
-		if (!timeGroups.has(key)) {
-			timeGroups.set(key, []);
-		}
-		timeGroups.get(key)?.push(metric);
-	});
-
-	// Convert groups to summary objects
-	const summaries: Array<{ timestamp: string; summary: MetricsSummary }> = [];
-
-	for (const [timestamp, groupMetrics] of timeGroups) {
-		const responseMetrics = groupMetrics.filter(
-			(m) => m.metric_type === "response",
-		);
-		const requestMetrics = groupMetrics.filter(
-			(m) => m.metric_type === "request",
-		);
-		const costMetrics = groupMetrics.filter((m) => m.metric_type === "cost");
-
-		// Calculate aggregated values
-		const totalRequests = requestMetrics.length;
-		const successfulRequests = responseMetrics.filter(
-			(m) => m.status_code >= 200 && m.status_code < 400,
-		).length;
-		const failedRequests = totalRequests - successfulRequests;
-
-		const responseTimes = responseMetrics
-			.map((m) => m.response_time_ms)
-			.filter((t) => t != null);
-		const avgResponseTime =
-			responseTimes.length > 0
-				? responseTimes.reduce((sum, t) => sum + t, 0) / responseTimes.length
-				: 0;
-
-		responseTimes.sort((a, b) => a - b);
-		const p95Index = Math.floor(responseTimes.length * 0.95);
-		const p99Index = Math.floor(responseTimes.length * 0.99);
-
-		const totalCost = costMetrics.reduce(
-			(sum, m) => sum + (m.total_cost || 0),
-			0,
-		);
-
-		const summary: MetricsSummary = {
-			time_period: {
-				start_time: timestamp,
-				end_time: new Date(
-					new Date(timestamp).getTime() + 5 * 60 * 1000,
-				).toISOString(),
-				duration_hours: 1 / 12, // 5 minutes
-			},
-			requests: {
-				total: totalRequests,
-				successful: successfulRequests,
-				failed: failedRequests,
-				error_rate: totalRequests > 0 ? failedRequests / totalRequests : 0,
-				success_rate:
-					totalRequests > 0 ? successfulRequests / totalRequests : 0,
-			},
-			performance: {
-				avg_response_time_ms: avgResponseTime,
-				p95_response_time_ms: responseTimes[p95Index] || avgResponseTime,
-				p99_response_time_ms: responseTimes[p99Index] || avgResponseTime,
-			},
-			tokens: {
-				total_input: costMetrics.reduce(
-					(sum, m) => sum + (m.input_tokens || 0),
-					0,
-				),
-				total_output: costMetrics.reduce(
-					(sum, m) => sum + (m.output_tokens || 0),
-					0,
-				),
-				total: costMetrics.reduce(
-					(sum, m) => sum + (m.input_tokens || 0) + (m.output_tokens || 0),
-					0,
-				),
-				avg_input_per_request: 0,
-				avg_output_per_request: 0,
-			},
-			costs: {
-				total: totalCost,
-				avg_per_request: totalRequests > 0 ? totalCost / totalRequests : 0,
-				currency: "USD",
-			},
-			usage: {
-				unique_users: 0,
-				peak_requests_per_minute: 0,
-				requests_per_hour: totalRequests * 12, // Convert 5-min window to hourly rate
-			},
-			models: {},
-			errors: {},
-		};
-
-		summaries.push({ timestamp, summary });
-	}
-
-	// Sort by timestamp and return last 20 entries
-	const result = summaries
-		.sort(
-			(a, b) =>
-				new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime(),
-		)
-		.slice(-20);
-
-	console.log(
-		"createHistoricalSummaries returning:",
-		result.length,
-		"summaries",
-	);
-	console.log("Sample summary:", result[0]);
-	console.log("Sample summary performance:", result[0]?.summary?.performance);
-	return result;
-}
 
 // Load initial data using new Analytics API
 async function loadDashboardData() {
 	try {
-		_isLoading = true;
-		console.log("🚀 Loading analytics data for dashboard...");
-
-		// Test basic connectivity first
-		console.log("🔍 Testing API connectivity...");
-		try {
-			const testResponse = await fetch("/metrics/status");
-			console.log(
-				"🔍 Status endpoint response:",
-				testResponse.status,
-				testResponse.statusText,
-			);
-			if (testResponse.ok) {
-				const statusData = await testResponse.json();
-				console.log("✅ Status data:", statusData);
-			}
-		} catch (testError) {
-			console.error("❌ Status endpoint failed:", testError);
-		}
+		isLoading = true;
 
 		// Load analytics data with current filters
 		const params = {
@@ -336,55 +137,13 @@ async function loadDashboardData() {
 			...(selectedModel && { model: selectedModel }),
 		};
 
-		console.log("📊 Requesting analytics with params:", params);
-
 		analyticsData = await metricsApi.getAnalytics(params);
-		console.log("📊 Analytics data loaded:", analyticsData);
-		console.log("📊 Analytics data keys:", Object.keys(analyticsData || {}));
-		console.log("📊 Service breakdown:", analyticsData?.service_breakdown);
-		console.log("📊 Model stats:", analyticsData?.model_stats);
-		console.log("📊 Hourly data:", analyticsData?.hourly_data);
-
-		// Also load legacy data for backward compatibility during transition
-		try {
-			const summaryResponse = await fetch("/metrics/summary");
-			if (summaryResponse.ok) {
-				_summaryData = await summaryResponse.json();
-			}
-
-			const metricsResponse = await fetch("/metrics/data?limit=100");
-			if (metricsResponse.ok) {
-				const data = await metricsResponse.json();
-				metricsData = data.data || [];
-			}
-
-			// Create historical summaries from metrics data if available
-			if (metricsData && metricsData.length > 0) {
-				_summariesHistory = createHistoricalSummaries(metricsData);
-			}
-		} catch (legacyError) {
-			console.warn("Failed to load legacy data:", legacyError);
-		}
 	} catch (error) {
-		console.error("❌ Failed to load analytics data:", error);
-		console.error("❌ Error details:", {
-			message: error.message,
-			status: error.status,
-			stack: error.stack,
-		});
-
-		// Try to fall back to legacy API
-		try {
-			console.log("Falling back to legacy API...");
-			const summaryResponse = await fetch("/metrics/summary");
-			if (summaryResponse.ok) {
-				_summaryData = await summaryResponse.json();
-			}
-		} catch (fallbackError) {
-			console.error("Legacy API fallback also failed:", fallbackError);
+		if (import.meta.env.DEV) {
+			console.error("❌ Failed to load analytics data:", error);
 		}
 	} finally {
-		_isLoading = false;
+		isLoading = false;
 	}
 }
 
@@ -400,9 +159,10 @@ async function _reloadAnalytics() {
 		};
 
 		analyticsData = await metricsApi.getAnalytics(params);
-		console.log("Analytics data reloaded with filters:", params, analyticsData);
 	} catch (error) {
-		console.error("Failed to reload analytics data:", error);
+		if (import.meta.env.DEV) {
+			console.error("Failed to reload analytics data:", error);
+		}
 	}
 }
 
@@ -431,14 +191,20 @@ function playNotificationSound() {
 		oscillator.start(audioContext.currentTime);
 		oscillator.stop(audioContext.currentTime + 0.2);
 	} catch (error) {
-		console.log("Audio notification not available:", error);
+		// Audio notification not available
 	}
+}
+
+// Flash effect function for live updates
+function triggerFlashEffect() {
+	isFlashing = true;
+	setTimeout(() => {
+		isFlashing = false;
+	}, 1000); // Flash for 1 second
 }
 
 // Add notification function
 function addNotification(message: string) {
-	console.log("Adding notification:", message);
-
 	const notification = {
 		id: Date.now().toString(),
 		message,
@@ -447,9 +213,6 @@ function addNotification(message: string) {
 
 	notifications = [notification, ...notifications.slice(0, 4)]; // Keep last 5
 	notificationCount++;
-
-	console.log("Notifications array:", notifications);
-	console.log("Notification count:", notificationCount);
 
 	// Play sound
 	playNotificationSound();
@@ -464,76 +227,65 @@ function addNotification(message: string) {
 function setupSSE() {
 	try {
 		eventSource = metricsApi.createSSEConnection();
-		console.log("Setting up modern SSE event listeners...");
 
 		// Add event listener for when the connection opens
 		eventSource.onopen = () => {
-			console.log("🔗 SSE connection opened");
+			if (import.meta.env.DEV) {
+				console.log("🔗 SSE connection opened");
+			}
 			addNotification("🔗 Connected to live stream");
 		};
 
 		// Handle new SSE event format
 		eventSource.onmessage = (event) => {
-			console.log("📨 SSE message received:", event);
-
 			try {
 				const streamEvent: MetricsStreamEvent = JSON.parse(event.data);
-				console.log("📈 Parsed stream event:", streamEvent);
 
 				switch (streamEvent.type) {
 					case "connection":
-						console.log("🔗 Connection event:", streamEvent.message);
 						addNotification(`🔗 ${streamEvent.message}`);
 						break;
 
 					case "analytics_update":
-						console.log("📊 Analytics update received");
 						analyticsData = streamEvent.data;
+						triggerFlashEffect(); // Trigger flash animation
 						addNotification("📊 New data available");
 						break;
 
 					case "heartbeat":
-						console.log("💓 Heartbeat:", streamEvent.stats);
 						// Update connection status without notification
 						break;
 
 					case "error":
-						console.error("❌ Stream error:", streamEvent.message);
 						addNotification(`❌ ${streamEvent.message}`);
 						break;
 
 					case "disconnect":
-						console.log("🔌 Disconnect:", streamEvent.message);
 						addNotification(`🔌 ${streamEvent.message}`);
 						break;
 
 					default:
-						console.log("Unknown event type:", streamEvent);
+						if (import.meta.env.DEV) {
+							console.log("Unknown SSE event type:", streamEvent);
+						}
 				}
 			} catch (error) {
-				console.error("❌ Failed to parse stream event:", error);
-				console.log("Raw data:", event.data);
-
-				// Try to handle as legacy metric data for backward compatibility
-				try {
-					const data = JSON.parse(event.data);
-					if (data.metric_type) {
-						console.log("📊 Processing legacy metric:", data.metric_type);
-						metricsData = [...metricsData.slice(-99), data];
-						addNotification(`📈 ${data.metric_type} event`);
-					}
-				} catch (_legacyError) {
-					console.log("Not parseable JSON data:", event.data);
+				if (import.meta.env.DEV) {
+					console.error("❌ Failed to parse stream event:", error);
 				}
 			}
 		};
 
 		eventSource.onerror = (error) => {
-			console.error("SSE connection error:", error);
+			if (import.meta.env.DEV) {
+				console.error("SSE connection error:", error);
+			}
 			addNotification("❌ Connection error");
 		};
 	} catch (error) {
-		console.error("Failed to setup SSE:", error);
+		if (import.meta.env.DEV) {
+			console.error("Failed to setup SSE:", error);
+		}
 	}
 }
 
@@ -553,11 +305,13 @@ async function loadChartComponents() {
 				import("$lib/components/charts/ModelUsageChart.svelte"),
 			]);
 
-			_chartComponents = {
+			chartComponents = {
 				ModelUsageChart: modules[0].default,
 			};
 		} catch (error) {
-			console.error("Failed to load chart components:", error);
+			if (import.meta.env.DEV) {
+				console.error("Failed to load chart components:", error);
+			}
 		}
 	}
 }
@@ -567,11 +321,6 @@ onMount(() => {
 	loadChartComponents();
 	loadDashboardData();
 	setupSSE();
-
-	// Test notification after 2 seconds
-	setTimeout(() => {
-		addNotification("🔧 Test notification - notifications are working!");
-	}, 2000);
 
 	// Return cleanup function
 	return cleanup;
@@ -599,7 +348,7 @@ onMount(() => {
 					<div class="flex items-center space-x-2">
 						<select
 							bind:value={selectedTimeRange}
-							onchange={() => reloadAnalytics()}
+							onchange={() => _reloadAnalytics()}
 							class="text-sm border border-gray-300 rounded px-2 py-1"
 						>
 							<option value={1}>Last Hour</option>
@@ -611,7 +360,7 @@ onMount(() => {
 						{#if analyticsData?.service_breakdown && analyticsData.service_breakdown.length > 0}
 							<select
 								bind:value={selectedServiceType}
-								onchange={() => reloadAnalytics()}
+								onchange={() => _reloadAnalytics()}
 								class="text-sm border border-gray-300 rounded px-2 py-1"
 							>
 								<option value={null}>All Services</option>
@@ -624,7 +373,7 @@ onMount(() => {
 						{#if analyticsData?.model_stats && analyticsData.model_stats.length > 0}
 							<select
 								bind:value={selectedModel}
-								onchange={() => reloadAnalytics()}
+								onchange={() => _reloadAnalytics()}
 								class="text-sm border border-gray-300 rounded px-2 py-1"
 							>
 								<option value={null}>All Models</option>
@@ -664,7 +413,7 @@ onMount(() => {
 			<!-- Metric Cards -->
 			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
 				{#each dashboardMetrics as metric (metric.id)}
-					<MetricCard {metric} />
+					<MetricCard {metric} {isFlashing} />
 				{/each}
 			</div>
 
@@ -672,7 +421,7 @@ onMount(() => {
 			{#if serviceBreakdownData.length > 0}
 				{#await import("$lib/components/SimpleServiceBreakdown.svelte") then { default: SimpleServiceBreakdown }}
 					<div class="mb-8">
-						<SimpleServiceBreakdown data={serviceBreakdownData} />
+						<SimpleServiceBreakdown data={serviceBreakdownData} {isFlashing} />
 					</div>
 				{/await}
 			{/if}
@@ -682,7 +431,7 @@ onMount(() => {
 				<div class="w-full max-w-4xl">
 					{#if chartComponents.ModelUsageChart}
 						{@const Component = chartComponents.ModelUsageChart}
-						<Component summary={summaryData} modelData={modelUsageData} />
+						<Component modelData={modelUsageData} {isFlashing} />
 					{:else}
 						<div class="bg-white rounded-lg shadow p-6">
 							<h3 class="text-lg font-semibold text-gray-900 mb-4">Model Usage</h3>
@@ -725,7 +474,7 @@ onMount(() => {
 			{#if timeSeriesData.length > 0}
 				{#await import("$lib/components/SimpleTimeSeriesChart.svelte") then { default: SimpleTimeSeriesChart }}
 					<div class="mb-8">
-						<SimpleTimeSeriesChart data={timeSeriesData} />
+						<SimpleTimeSeriesChart data={timeSeriesData} {isFlashing} />
 					</div>
 				{/await}
 			{/if}
@@ -756,58 +505,6 @@ onMount(() => {
 				</div>
 			{/if}
 
-			<!-- Debug Info (Development) -->
-			{#if import.meta.env.DEV}
-				<div class="bg-gray-100 rounded-lg p-4 text-xs">
-					<h4 class="font-semibold text-gray-700 mb-2">Debug Info:</h4>
-					<div class="grid grid-cols-2 gap-4 text-gray-600">
-						<div>
-							<strong>Analytics Data:</strong> {analyticsData ? 'Loaded' : 'None'}
-						</div>
-						<div>
-							<strong>Raw Service Breakdown:</strong> {analyticsData?.service_breakdown?.length || 0} items
-						</div>
-						<div>
-							<strong>Processed Service Types:</strong> {serviceBreakdownData.length} types
-						</div>
-						<div>
-							<strong>Raw Model Stats:</strong> {analyticsData?.model_stats?.length || 0} items
-						</div>
-						<div>
-							<strong>Processed Models:</strong> {modelUsageData.length} models
-						</div>
-						<div>
-							<strong>Raw Hourly Data:</strong> {analyticsData?.hourly_data?.length || 0} items
-						</div>
-						<div>
-							<strong>Processed Time Series Points:</strong> {timeSeriesData.length} points
-						</div>
-						<div>
-							<strong>Selected Time Range:</strong> {selectedTimeRange}h
-						</div>
-						<div>
-							<strong>Selected Service:</strong> {selectedServiceType || 'All'}
-						</div>
-						<div>
-							<strong>Selected Model:</strong> {selectedModel || 'All'}
-						</div>
-						<div>
-							<strong>SSE:</strong> {eventSource ? 'Connected' : 'Disconnected'}
-						</div>
-						<div>
-							<strong>Legacy Metrics:</strong> {metricsData.length} items
-						</div>
-						<div>
-							<strong>Legacy Request Metrics:</strong> {requestMetrics.length} items
-						</div>
-					</div>
-					{#if analyticsData}
-						<div class="mt-2 pt-2 border-t border-gray-300">
-							<strong>Query Time:</strong> {analyticsData.query_time.toFixed(3)}s
-						</div>
-					{/if}
-				</div>
-			{/if}
 		{/if}
 	</main>
 </div>

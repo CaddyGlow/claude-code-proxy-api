@@ -1,50 +1,39 @@
 <script lang="ts">
 
-import type { MetricsSummary, ModelUsageData } from "$lib/types/metrics";
+import type { ModelUsageData } from "$lib/types/metrics";
 
-interface Props {
-	summary?: MetricsSummary | null;
-	modelData?: ModelUsageData[];
-	class?: string;
+// Utility function for formatting numbers
+function formatNumber(num: number): string {
+	if (num >= 1000000) {
+		return (num / 1000000).toFixed(1) + 'M';
+	} else if (num >= 1000) {
+		return (num / 1000).toFixed(1) + 'K';
+	}
+	return num.toString();
 }
 
-const { summary, modelData, class: className = "" }: Props = $props();
+interface Props {
+	modelData?: ModelUsageData[];
+	class?: string;
+	isFlashing?: boolean;
+}
 
-// Prepare chart data using $derived for reactivity - prioritize new modelData
+const { modelData, class: className = "", isFlashing = false }: Props = $props();
+
+// Prepare chart data using $derived for reactivity
 const chartData = $derived.by(() => {
-	// Use new modelData if available, otherwise fall back to legacy summary
-	if (modelData && modelData.length > 0) {
-		return modelData.map((model, index) => ({
-			label: model.model,
-			value: model.request_count,
-			percentage: model.percentage,
-			avgResponseTime: model.avg_response_time,
-			totalCost: model.total_cost,
-			color: colors[index % colors.length],
-		}));
-	}
-
-	// Legacy fallback
-	if (!summary) {
+	if (!modelData || modelData.length === 0) {
 		return [];
 	}
 
-	const modelUsage = summary.models ?? summary.model_usage ?? {};
-	const total = Object.values(modelUsage).reduce(
-		(sum, count) => sum + count,
-		0,
-	);
-
-	return Object.entries(modelUsage)
-		.map(([model, count], index) => ({
-			label: model,
-			value: count,
-			percentage: total > 0 ? (count / total) * 100 : 0,
-			avgResponseTime: 0, // Not available in legacy data
-			totalCost: 0, // Not available in legacy data
-			color: colors[index % colors.length],
-		}))
-		.sort((a, b) => b.value - a.value); // Sort by usage count
+	return modelData.map((model, index) => ({
+		label: model.model,
+		value: model.request_count,
+		percentage: model.percentage,
+		avgResponseTime: model.avg_response_time,
+		totalCost: model.total_cost,
+		color: colors[index % colors.length],
+	}));
 });
 
 // Color scheme for different models
@@ -58,28 +47,6 @@ const colors = [
 	"rgb(132, 204, 22)", // lime-500
 	"rgb(245, 101, 101)", // red-400
 ];
-
-// Transform data for LayerChart Arc component - LayerChart expects hierarchical data
-const _arcData = $derived(() => {
-	if (chartData.length === 0) return null;
-
-	// Create hierarchical data structure that LayerChart expects
-	return {
-		children: chartData.map((item, _index) => ({
-			id: item.label,
-			label: item.label,
-			value: item.value, // Use actual request count for sizing
-			percentage: item.percentage,
-			avgResponseTime: item.avgResponseTime,
-			totalCost: item.totalCost,
-			color: item.color,
-		})),
-	};
-});
-
-// Chart dimensions for pie chart
-const _pieSize = 200;
-const _padding = { top: 20, right: 20, bottom: 20, left: 20 };
 </script>
 
 <div class="w-full {className}">
@@ -91,106 +58,88 @@ const _padding = { top: 20, right: 20, bottom: 20, left: 20 };
 				<p class="text-gray-500">No model usage data available</p>
 			</div>
 		{:else}
-			<div class="flex flex-col lg:flex-row gap-6">
-				<!-- Simple Pie Chart Visualization -->
-				<div class="flex-1">
-					<div class="h-64 w-full flex items-center justify-center">
-						<div class="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
-							{#each chartData as model}
-								<div class="border rounded-lg p-4">
-									<div class="flex items-center justify-between mb-2">
-										<h4 class="font-medium text-gray-900">{model.label}</h4>
-										<span class="text-sm text-gray-500">{model.percentage.toFixed(1)}%</span>
-									</div>
-									<div class="space-y-1 text-sm text-gray-600">
-										<div class="flex justify-between">
-											<span>Requests:</span>
-											<span class="font-medium">{model.value.toLocaleString()}</span>
-										</div>
-										{#if model.avgResponseTime > 0}
-											<div class="flex justify-between">
-												<span>Avg Response:</span>
-												<span class="font-medium">{model.avgResponseTime.toFixed(3)}s</span>
-											</div>
-										{/if}
-										{#if model.totalCost > 0}
-											<div class="flex justify-between">
-												<span>Total Cost:</span>
-												<span class="font-medium">${model.totalCost.toFixed(4)}</span>
-											</div>
-										{/if}
-									</div>
-									<!-- Progress bar showing percentage -->
-									<div class="mt-2">
-										<div class="w-full bg-gray-200 rounded-full h-2">
-											<div
-												class="h-2 rounded-full transition-all duration-300"
-												style="width: {model.percentage}%; background-color: {model.color}"
-											></div>
-										</div>
-									</div>
-								</div>
-							{/each}
+			<!-- Improved Grid Layout with Better Alignment -->
+			<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+				{#each chartData as model}
+					<div class="bg-gray-50 border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+						<!-- Model Header with Color Indicator -->
+						<div class="flex items-center justify-between mb-3">
+							<div class="flex items-center space-x-2">
+								<div
+									class="w-3 h-3 rounded-full"
+									style="background-color: {model.color}"
+								></div>
+								<h4 class="font-semibold text-gray-900 truncate" title={model.label}>
+									{model.label}
+								</h4>
+							</div>
+							<span class="text-lg font-bold text-gray-700">{model.percentage.toFixed(1)}%</span>
 						</div>
-					</div>
-				</div>
 
-				<!-- Enhanced Legend -->
-				<div class="lg:w-64">
-					<h4 class="text-sm font-medium text-gray-700 mb-3">Models</h4>
-					<div class="space-y-2">
-						{#each chartData as model}
-							<div class="flex items-center justify-between">
-								<div class="flex items-center space-x-2">
-									<div
-										class="w-3 h-3 rounded-full"
-										style="background-color: {model.color}"
-									></div>
-									<span class="text-sm text-gray-600 truncate" title={model.label}>
-										{model.label}
-									</span>
-								</div>
-								<div class="text-right">
-									<div class="text-sm font-medium text-gray-900">
-										{formatNumber(model.value)}
-									</div>
-									<div class="text-xs text-gray-500">
-										{model.percentage.toFixed(1)}%
-									</div>
-									{#if model.avgResponseTime > 0}
-										<div class="text-xs text-gray-500">
-											{model.avgResponseTime.toFixed(2)}s avg
-										</div>
-									{/if}
+						<!-- Metrics Grid -->
+						<div class="grid grid-cols-2 gap-3 mb-3 text-sm">
+							<div class="text-center">
+								<div class="text-xs text-gray-500 uppercase tracking-wide">Requests</div>
+								<div class="font-semibold text-gray-900 px-2 py-1 rounded transition-all duration-700 {isFlashing ? 'bg-blue-200' : ''}">{formatNumber(model.value)}</div>
+							</div>
+							<div class="text-center">
+								<div class="text-xs text-gray-500 uppercase tracking-wide">Avg Response</div>
+								<div class="font-semibold text-gray-900 px-2 py-1 rounded transition-all duration-700 {isFlashing ? 'bg-blue-200' : ''}">
+									{model.avgResponseTime > 0 ? `${model.avgResponseTime.toFixed(2)}s` : 'N/A'}
 								</div>
 							</div>
-						{/each}
-					</div>
+						</div>
 
-					<!-- Enhanced Statistics -->
-					{#if chartData.length > 0}
-						<div class="mt-4 pt-3 border-t border-gray-200">
-							<h5 class="text-xs font-medium text-gray-700 mb-2">Summary</h5>
-							<div class="space-y-1 text-xs text-gray-600">
-								<div class="flex justify-between">
-									<span>Total Models:</span>
-									<span class="font-medium">{chartData.length}</span>
-								</div>
-								<div class="flex justify-between">
-									<span>Total Requests:</span>
-									<span class="font-medium">{chartData.reduce((sum, m) => sum + m.value, 0).toLocaleString()}</span>
-								</div>
-								{#if chartData.some(m => m.totalCost > 0)}
-									<div class="flex justify-between">
-										<span>Total Cost:</span>
-										<span class="font-medium">${chartData.reduce((sum, m) => sum + m.totalCost, 0).toFixed(4)}</span>
-									</div>
-								{/if}
+						<!-- Cost Display -->
+						{#if model.totalCost > 0}
+							<div class="text-center mb-3">
+								<div class="text-xs text-gray-500 uppercase tracking-wide">Total Cost</div>
+								<div class="font-semibold text-green-600 px-2 py-1 rounded transition-all duration-700 {isFlashing ? 'bg-blue-200' : ''}">${model.totalCost.toFixed(4)}</div>
+							</div>
+						{/if}
+
+						<!-- Progress Bar -->
+						<div class="mt-3">
+							<div class="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
+								<div
+									class="h-full rounded-full transition-all duration-500 ease-out"
+									style="width: {model.percentage}%; background-color: {model.color}"
+								></div>
 							</div>
 						</div>
-					{/if}
-				</div>
+					</div>
+				{/each}
 			</div>
+
+			<!-- Summary Statistics -->
+			{#if chartData.length > 0}
+				<div class="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+					<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 text-center">
+						<div>
+							<div class="text-sm text-blue-600 font-medium">Total Models</div>
+							<div class="text-2xl font-bold text-blue-800 px-2 py-1 rounded transition-all duration-700 {isFlashing ? 'bg-white' : ''}">{chartData.length}</div>
+						</div>
+						<div>
+							<div class="text-sm text-blue-600 font-medium">Total Requests</div>
+							<div class="text-2xl font-bold text-blue-800 px-2 py-1 rounded transition-all duration-700 {isFlashing ? 'bg-white' : ''}">{chartData.reduce((sum, m) => sum + m.value, 0).toLocaleString()}</div>
+						</div>
+						<div>
+							<div class="text-sm text-blue-600 font-medium">Avg Response Time</div>
+							<div class="text-2xl font-bold text-blue-800 px-2 py-1 rounded transition-all duration-700 {isFlashing ? 'bg-white' : ''}">
+								{(chartData.reduce((sum, m) => sum + m.avgResponseTime, 0) / chartData.length).toFixed(2)}s
+							</div>
+						</div>
+						{#if chartData.some(m => m.totalCost > 0)}
+							<div>
+								<div class="text-sm text-blue-600 font-medium">Total Cost</div>
+								<div class="text-2xl font-bold text-green-600 px-2 py-1 rounded transition-all duration-700 {isFlashing ? 'bg-white' : ''}">
+									${chartData.reduce((sum, m) => sum + m.totalCost, 0).toFixed(4)}
+								</div>
+							</div>
+						{/if}
+					</div>
+				</div>
+			{/if}
 		{/if}
 	</div>
 </div>

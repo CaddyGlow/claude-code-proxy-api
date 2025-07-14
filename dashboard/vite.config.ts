@@ -31,17 +31,6 @@ export default defineConfig(({ mode }) => ({
 					changeOrigin: true,
 					secure: false,
 				},
-				// Legacy endpoints
-				"/metrics/summary": {
-					target: "http://localhost:8000",
-					changeOrigin: true,
-					secure: false,
-				},
-				"/metrics/data": {
-					target: "http://localhost:8000",
-					changeOrigin: true,
-					secure: false,
-				},
 				"/metrics/stream": {
 					target: "http://localhost:8000",
 					changeOrigin: true,
@@ -50,17 +39,4 @@ export default defineConfig(({ mode }) => ({
 			},
 		},
 	}),
-
-	// Production build configuration
-	build: {
-		rollupOptions: {
-			output: {
-				// Single file build for production
-				inlineDynamicImports: true,
-				manualChunks: undefined,
-			},
-		},
-		cssCodeSplit: false,
-		assetsInlineLimit: 100000000, // Inline all assets
-	},
 }));

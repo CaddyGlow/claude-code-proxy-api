@@ -5,30 +5,8 @@ import type {
 	MetricsStatusResponse,
 	QueryRequest,
 	QueryResponse,
-	// Legacy types for backward compatibility
-	MetricsDataResponse,
-	MetricsSummary,
-	ApiMetricType,
-	SSEConnectionsResponse,
 } from "$lib/types/metrics";
 import { DASHBOARD_CONFIG } from "$lib/utils/constants";
-
-export interface MetricsDataParams {
-	start_time?: string;
-	end_time?: string;
-	metric_type?: ApiMetricType;
-	user_id?: string;
-	session_id?: string;
-	limit?: number;
-	offset?: number;
-}
-
-export interface MetricsSummaryParams {
-	start_time?: string;
-	end_time?: string;
-	user_id?: string;
-	session_id?: string;
-}
 
 export class MetricsApiError extends Error {
 	constructor(
@@ -111,7 +89,7 @@ export class MetricsApiClient {
 	}
 
 	/**
-	 * Get analytics data (NEW API)
+	 * Get analytics data
 	 */
 	async getAnalytics(params: AnalyticsParams = {}): Promise<AnalyticsResponse> {
 		const queryString = this.buildQueryString(params);
@@ -120,21 +98,21 @@ export class MetricsApiClient {
 	}
 
 	/**
-	 * Get storage health status (NEW API)
+	 * Get storage health status
 	 */
 	async getHealth(): Promise<StorageHealthResponse> {
 		return this.request<StorageHealthResponse>("/health");
 	}
 
 	/**
-	 * Get metrics system status (NEW API)
+	 * Get metrics system status
 	 */
 	async getStatus(): Promise<MetricsStatusResponse> {
 		return this.request<MetricsStatusResponse>("/status");
 	}
 
 	/**
-	 * Execute custom SQL query (NEW API)
+	 * Execute custom SQL query
 	 */
 	async executeQuery(request: QueryRequest): Promise<QueryResponse> {
 		return this.request<QueryResponse>("/query", {
@@ -149,38 +127,6 @@ export class MetricsApiClient {
 	createSSEConnection(baseUrl?: string): EventSource {
 		const url = `${baseUrl || this.baseUrl}/stream`;
 		return new EventSource(url);
-	}
-
-	// Legacy methods for backward compatibility
-	/**
-	 * @deprecated Use getAnalytics() instead
-	 */
-	async getMetricsData(
-		params: MetricsDataParams = {},
-	): Promise<MetricsDataResponse> {
-		const queryString = this.buildQueryString(params);
-		const endpoint = `${DASHBOARD_CONFIG.ENDPOINTS.DATA}${queryString ? `?${queryString}` : ""}`;
-		return this.request<MetricsDataResponse>(endpoint);
-	}
-
-	/**
-	 * @deprecated Use getAnalytics() instead
-	 */
-	async getMetricsSummary(
-		params: MetricsSummaryParams = {},
-	): Promise<MetricsSummary> {
-		const queryString = this.buildQueryString(params);
-		const endpoint = `${DASHBOARD_CONFIG.ENDPOINTS.SUMMARY}${queryString ? `?${queryString}` : ""}`;
-		return this.request<MetricsSummary>(endpoint);
-	}
-
-	/**
-	 * Get SSE connections info
-	 */
-	async getSSEConnections(): Promise<SSEConnectionsResponse> {
-		return this.request<SSEConnectionsResponse>(
-			DASHBOARD_CONFIG.ENDPOINTS.SSE_CONNECTIONS,
-		);
 	}
 
 	/**
@@ -249,49 +195,6 @@ export class MetricsApiClient {
 		hours: number = 24,
 	): Promise<AnalyticsResponse> {
 		return this.getAnalyticsForHours(hours, undefined, model);
-	}
-
-	// Legacy methods for backward compatibility
-	/**
-	 * @deprecated Use getAnalyticsForTimeRange() instead
-	 */
-	async getMetricsForTimeRange(
-		startTime: Date,
-		endTime: Date,
-		metricType?: any,
-		limit: number = 100,
-	): Promise<MetricsDataResponse> {
-		const params: MetricsDataParams = {
-			start_time: startTime.toISOString(),
-			end_time: endTime.toISOString(),
-			limit,
-		};
-
-		if (metricType) {
-			params.metric_type = metricType;
-		}
-
-		return this.getMetricsData(params);
-	}
-
-	/**
-	 * @deprecated Use getAnalyticsForTimeRange() instead
-	 */
-	async getSummaryForTimeRange(
-		startTime: Date,
-		endTime: Date,
-		userId?: string,
-	): Promise<MetricsSummary> {
-		const params: MetricsSummaryParams = {
-			start_time: startTime.toISOString(),
-			end_time: endTime.toISOString(),
-		};
-
-		if (userId) {
-			params.user_id = userId;
-		}
-
-		return this.getMetricsSummary(params);
 	}
 
 	/**

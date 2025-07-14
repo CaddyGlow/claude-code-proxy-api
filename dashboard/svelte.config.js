@@ -10,11 +10,7 @@ const config = {
 	kit: {
 		// Configure adapter-static for SPA mode
 		adapter: adapter({
-			pages: "build",
-			assets: "build",
 			fallback: "index.html",
-			precompress: false,
-			strict: true,
 		}),
 		// Set base path for deployment under /metrics/dashboard
 		paths: {
