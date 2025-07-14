@@ -1,4 +1,4 @@
-import type { ApiMetricType, SSEEvent } from "$lib/types/metrics";
+import type { ApiMetricType, MetricsStreamEvent } from "$lib/types/metrics";
 import { DASHBOARD_CONFIG } from "$lib/utils/constants";
 
 export interface SSEConnectionParams {
@@ -8,7 +8,7 @@ export interface SSEConnectionParams {
 	subscription_types?: string[];
 }
 
-export type SSEEventHandler = (event: SSEEvent) => void;
+export type SSEEventHandler = (event: MetricsStreamEvent) => void;
 export type SSEErrorHandler = (error: Error) => void;
 export type SSEStatusHandler = (connected: boolean) => void;
 
@@ -218,7 +218,7 @@ export class SSEMetricsClient {
 	/**
 	 * Notify message listeners
 	 */
-	private notifyMessageListeners(event: SSEEvent): void {
+	private notifyMessageListeners(event: MetricsStreamEvent): void {
 		this.listeners.message.forEach((handler) => {
 			try {
 				handler(event);

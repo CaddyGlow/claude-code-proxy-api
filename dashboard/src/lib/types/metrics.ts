@@ -3,6 +3,8 @@
 
 export type ServiceType = "proxy_service" | "claude_sdk_service" | "unknown";
 
+export type ApiMetricType = "total_requests" | "successful_requests" | "failed_requests" | "avg_response_time";
+
 // Analytics API Response Types
 export interface AnalyticsResponse {
 	summary: {

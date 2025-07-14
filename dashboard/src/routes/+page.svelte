@@ -9,23 +9,24 @@ import { metricsApi } from "$lib/services/metrics-api";
 import { onMount } from "svelte";
 import { browser } from "$app/environment";
 import MetricCard from "$lib/components/MetricCard.svelte";
+import { formatVersionForDisplay, isDevelopmentVersion } from "$lib/version";
 
 // Dynamic imports for browser-only chart components (to avoid SSR issues with LayerChart)
-let chartComponents = $state<{
+let _chartComponents = $state<{
 	ModelUsageChart?: any;
 }>({});
 
 // Modern Svelte 5 reactive state using new Analytics API
 let analyticsData = $state<AnalyticsResponse | null>(null);
-let isLoading = $state(true);
+let _isLoading = $state(true);
 let eventSource = $state<EventSource | null>(null);
 let notifications = $state<
 	Array<{ id: string; message: string; timestamp: Date }>
 >([]);
-let notificationCount = $state(0);
+let _notificationCount = $state(0);
 
 // Flash effect state for live updates
-let isFlashing = $state(false);
+let _isFlashing = $state(false);
 
 // Filter states for enhanced dashboard views
 let selectedServiceType = $state<string | null>(null);
@@ -33,7 +34,7 @@ let selectedModel = $state<string | null>(null);
 let selectedTimeRange = $state<number>(24); // Hours
 
 // Derived metrics for cards using new Analytics API
-const dashboardMetrics = $derived<MetricCardType[]>([
+const _dashboardMetrics = $derived<MetricCardType[]>([
 	{
 		id: "total-requests",
 		label: "Total Requests",
@@ -79,7 +80,7 @@ const dashboardMetrics = $derived<MetricCardType[]>([
 ]);
 
 // Derived data for charts using new Analytics API
-const serviceBreakdownData = $derived.by(() => {
+const _serviceBreakdownData = $derived.by(() => {
 	if (!analyticsData?.service_breakdown) {
 		return [];
 	}
@@ -95,7 +96,7 @@ const serviceBreakdownData = $derived.by(() => {
 	}));
 });
 
-const modelUsageData = $derived.by(() => {
+const _modelUsageData = $derived.by(() => {
 	if (!analyticsData?.model_stats) {
 		return [];
 	}
@@ -111,7 +112,7 @@ const modelUsageData = $derived.by(() => {
 	}));
 });
 
-const timeSeriesData = $derived.by(() => {
+const _timeSeriesData = $derived.by(() => {
 	if (!analyticsData?.hourly_data) {
 		return [];
 	}
@@ -126,7 +127,7 @@ const timeSeriesData = $derived.by(() => {
 // Load initial data using new Analytics API
 async function loadDashboardData() {
 	try {
-		isLoading = true;
+		_isLoading = true;
 
 		// Load analytics data with current filters
 		const params = {
@@ -140,10 +141,10 @@ async function loadDashboardData() {
 		analyticsData = await metricsApi.getAnalytics(params);
 	} catch (error) {
 		if (import.meta.env.DEV) {
-			console.error("❌ Failed to load analytics data:", error);
+			console.error("Failed to load analytics data:", error);
 		}
 	} finally {
-		isLoading = false;
+		_isLoading = false;
 	}
 }
 
@@ -190,17 +191,23 @@ function playNotificationSound() {
 
 		oscillator.start(audioContext.currentTime);
 		oscillator.stop(audioContext.currentTime + 0.2);
-	} catch (error) {
+	} catch (_error) {
 		// Audio notification not available
 	}
 }
 
 // Flash effect function for live updates
 function triggerFlashEffect() {
-	isFlashing = true;
+	if (import.meta.env.DEV) {
+		console.log("Triggering flash effect");
+	}
+	_isFlashing = true;
 	setTimeout(() => {
-		isFlashing = false;
-	}, 1000); // Flash for 1 second
+		_isFlashing = false;
+		if (import.meta.env.DEV) {
+			console.log("Flash effect ended");
+		}
+	}, 1500); // Flash for 1.5 seconds for better visibility
 }
 
 // Add notification function
@@ -212,7 +219,7 @@ function addNotification(message: string) {
 	};
 
 	notifications = [notification, ...notifications.slice(0, 4)]; // Keep last 5
-	notificationCount++;
+	_notificationCount++;
 
 	// Play sound
 	playNotificationSound();
@@ -231,9 +238,9 @@ function setupSSE() {
 		// Add event listener for when the connection opens
 		eventSource.onopen = () => {
 			if (import.meta.env.DEV) {
-				console.log("🔗 SSE connection opened");
+				console.log("SSE connection opened");
 			}
-			addNotification("🔗 Connected to live stream");
+			addNotification("Connected to live stream");
 		};
 
 		// Handle new SSE event format
@@ -243,13 +250,59 @@ function setupSSE() {
 
 				switch (streamEvent.type) {
 					case "connection":
-						addNotification(`🔗 ${streamEvent.message}`);
+						addNotification(`Connected: ${streamEvent.message}`);
 						break;
 
 					case "analytics_update":
-						analyticsData = streamEvent.data;
-						triggerFlashEffect(); // Trigger flash animation
-						addNotification("📊 New data available");
+						// Replace data with new analytics snapshot
+						if (streamEvent.data) {
+							analyticsData = streamEvent.data;
+
+							// Create detailed notification with analytics info
+							const data = streamEvent.data;
+							let notificationDetails = [];
+
+							// Add summary info
+							if (data.summary) {
+								notificationDetails.push(`${data.summary.total_requests} requests`);
+
+								if (data.summary.total_tokens_input > 0 || data.summary.total_tokens_output > 0) {
+									const totalTokens = (data.summary.total_tokens_input || 0) + (data.summary.total_tokens_output || 0);
+									notificationDetails.push(`${totalTokens.toLocaleString()} tokens`);
+								}
+
+								if (data.summary.total_cost_usd > 0) {
+									notificationDetails.push(`$${data.summary.total_cost_usd.toFixed(4)}`);
+								}
+							}
+
+							// Add most active model
+							if (data.model_stats && data.model_stats.length > 0) {
+								const topModel = data.model_stats.reduce((prev, current) =>
+									(prev.request_count > current.request_count) ? prev : current
+								);
+								if (topModel.request_count > 0) {
+									notificationDetails.push(`Top: ${topModel.model}`);
+								}
+							}
+
+							// Add service type info
+							if (data.service_breakdown && data.service_breakdown.length > 0) {
+								const activeServices = data.service_breakdown
+									.filter(s => s.request_count > 0)
+									.map(s => s.service_type.replace('_service', ''))
+									.join(', ');
+								if (activeServices) {
+									notificationDetails.push(`Services: ${activeServices}`);
+								}
+							}
+
+							const detailedMessage = notificationDetails.length > 0
+								? `Update: ${notificationDetails.join(' | ')}`
+								: "New data available";
+
+							addNotification(detailedMessage);
+						}
 						break;
 
 					case "heartbeat":
@@ -257,11 +310,11 @@ function setupSSE() {
 						break;
 
 					case "error":
-						addNotification(`❌ ${streamEvent.message}`);
+						addNotification(`Error: ${streamEvent.message}`);
 						break;
 
 					case "disconnect":
-						addNotification(`🔌 ${streamEvent.message}`);
+						addNotification(`Disconnected: ${streamEvent.message}`);
 						break;
 
 					default:
@@ -271,7 +324,7 @@ function setupSSE() {
 				}
 			} catch (error) {
 				if (import.meta.env.DEV) {
-					console.error("❌ Failed to parse stream event:", error);
+					console.error("Failed to parse stream event:", error);
 				}
 			}
 		};
@@ -280,7 +333,7 @@ function setupSSE() {
 			if (import.meta.env.DEV) {
 				console.error("SSE connection error:", error);
 			}
-			addNotification("❌ Connection error");
+			addNotification("Connection error");
 		};
 	} catch (error) {
 		if (import.meta.env.DEV) {
@@ -305,7 +358,7 @@ async function loadChartComponents() {
 				import("$lib/components/charts/ModelUsageChart.svelte"),
 			]);
 
-			chartComponents = {
+			_chartComponents = {
 				ModelUsageChart: modules[0].default,
 			};
 		} catch (error) {
@@ -339,7 +392,12 @@ onMount(() => {
 						</svg>
 					</div>
 					<div>
-						<h1 class="text-xl font-bold text-gray-900">Claude Code Proxy</h1>
+						<div class="flex items-center space-x-2">
+							<h1 class="text-xl font-bold text-gray-900">Claude Code Proxy</h1>
+							<span class="text-xs px-2 py-1 rounded-full {isDevelopmentVersion() ? 'bg-yellow-100 text-yellow-800' : 'bg-green-100 text-green-800'}">
+								{formatVersionForDisplay(true)}
+							</span>
+						</div>
 						<p class="text-sm text-gray-500">Real-time Metrics Dashboard</p>
 					</div>
 				</div>
@@ -388,12 +446,12 @@ onMount(() => {
 						<div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
 						<span class="text-sm text-gray-500">Live</span>
 					</div>
-					{#if notificationCount > 0}
+					{#if _notificationCount > 0}
 						<div class="flex items-center space-x-1 text-sm text-blue-600">
 							<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
 								<path d="M10 2C5.03 2 1 6.03 1 11c0 1.33.29 2.59.8 3.73L1 19l4.27-.8C6.41 18.71 7.67 19 9 19h1c4.97 0 9-4.03 9-9s-4.03-9-9-9z"/>
 							</svg>
-							<span>{notificationCount} events</span>
+							<span>{_notificationCount} events</span>
 						</div>
 					{/if}
 				</div>
@@ -402,7 +460,7 @@ onMount(() => {
 	</header>
 
 	<main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-		{#if isLoading}
+		{#if _isLoading}
 			<div class="flex items-center justify-center py-12">
 				<div class="flex items-center space-x-2">
 					<div class="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
@@ -412,16 +470,16 @@ onMount(() => {
 		{:else}
 			<!-- Metric Cards -->
 			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-				{#each dashboardMetrics as metric (metric.id)}
-					<MetricCard {metric} {isFlashing} />
+				{#each _dashboardMetrics as metric (metric.id)}
+					<MetricCard {metric} />
 				{/each}
 			</div>
 
 			<!-- Service Breakdown Chart -->
-			{#if serviceBreakdownData.length > 0}
+			{#if _serviceBreakdownData.length > 0}
 				{#await import("$lib/components/SimpleServiceBreakdown.svelte") then { default: SimpleServiceBreakdown }}
 					<div class="mb-8">
-						<SimpleServiceBreakdown data={serviceBreakdownData} {isFlashing} />
+						<SimpleServiceBreakdown data={_serviceBreakdownData} />
 					</div>
 				{/await}
 			{/if}
@@ -429,15 +487,15 @@ onMount(() => {
 			<!-- Model Usage Chart -->
 			<div class="flex justify-center mb-8">
 				<div class="w-full max-w-4xl">
-					{#if chartComponents.ModelUsageChart}
-						{@const Component = chartComponents.ModelUsageChart}
-						<Component modelData={modelUsageData} {isFlashing} />
+					{#if _chartComponents.ModelUsageChart}
+						{@const Component = _chartComponents.ModelUsageChart}
+						<Component modelData={_modelUsageData} />
 					{:else}
 						<div class="bg-white rounded-lg shadow p-6">
 							<h3 class="text-lg font-semibold text-gray-900 mb-4">Model Usage</h3>
-							{#if modelUsageData.length > 0}
+							{#if _modelUsageData.length > 0}
 								<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-									{#each modelUsageData as model}
+									{#each _modelUsageData as model}
 										<div class="border rounded-lg p-4">
 											<div class="flex items-center justify-between mb-2">
 												<h4 class="font-medium text-gray-900">{model.model}</h4>
@@ -471,10 +529,10 @@ onMount(() => {
 			</div>
 
 			<!-- Time Series Chart -->
-			{#if timeSeriesData.length > 0}
+			{#if _timeSeriesData.length > 0}
 				{#await import("$lib/components/SimpleTimeSeriesChart.svelte") then { default: SimpleTimeSeriesChart }}
 					<div class="mb-8">
-						<SimpleTimeSeriesChart data={timeSeriesData} {isFlashing} />
+						<SimpleTimeSeriesChart data={_timeSeriesData} />
 					</div>
 				{/await}
 			{/if}
@@ -494,6 +552,7 @@ onMount(() => {
 								<button
 									onclick={() => notifications = notifications.filter(n => n.id !== notification.id)}
 									class="ml-2 text-blue-200 hover:text-white transition-colors"
+									aria-label="Close notification"
 								>
 									<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
 										<path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>

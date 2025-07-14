@@ -122,12 +122,10 @@ export const DASHBOARD_CONFIG = {
 
 // Metric type definitions
 export const METRIC_TYPES: Record<string, ApiMetricType> = {
-	REQUEST: "request",
-	RESPONSE: "response",
-	ERROR: "error",
-	COST: "cost",
-	LATENCY: "latency",
-	USAGE: "usage",
+	REQUEST: "total_requests",
+	RESPONSE: "successful_requests",
+	ERROR: "failed_requests",
+	COST: "avg_response_time",
 } as const;
 
 // Error type mappings for better display

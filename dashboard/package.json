@@ -1,39 +1,40 @@
 {
-	"name": "dashboard",
-	"private": true,
-	"version": "0.0.1",
-	"type": "module",
-	"scripts": {
-		"dev": "bunx --bun vite dev",
-		"build": "bunx --bun vite build",
-		"build:prod": "bunx --bun vite build && rm -rf ../ccproxy/static/dashboard && cp -r build ../ccproxy/static/dashboard",
-		"preview": "bunx --bun vite preview",
-		"prepare": "svelte-kit sync || echo ''",
-		"check": "bunx sv check --tsconfig ./tsconfig.json && bunx biome check",
-		"check:watch": "bunx sv check --tsconfig ./tsconfig.json --watch",
-		"lint": "bunx biome lint",
-		"format": "bunx biome format --write",
-		"format:check": "bunx biome format"
-	},
-	"devDependencies": {
-		"@biomejs/biome": "^1.9.0",
-		"@sveltejs/adapter-auto": "^6.0.0",
-		"@sveltejs/adapter-static": "^3.0.8",
-		"@sveltejs/kit": "^2.22.0",
-		"@sveltejs/vite-plugin-svelte": "^6.0.0",
-		"svelte": "^5.0.0",
-		"svelte-check": "^4.0.0",
-		"typescript": "^5.0.0",
-		"vite": "^7.0.4"
-	},
-	"dependencies": {
-		"@tailwindcss/vite": "^4.1.11",
-		"chart.js": "^4.5.0",
-		"chartjs-adapter-date-fns": "^3.0.0",
-		"d3-array": "^3.2.4",
-		"d3-scale": "^4.0.2",
-		"date-fns": "^4.1.0",
-		"layerchart": "^1.0.11",
-		"tailwindcss": "^4.1.11"
-	}
+  "name": "dashboard",
+  "private": true,
+  "version": "0.1.0-dev143",
+  "type": "module",
+  "scripts": {
+    "sync-version": "node scripts/sync-version.js",
+    "dev": "bunx --bun vite dev",
+    "build": "bun run sync-version && bunx --bun vite build",
+    "build:prod": "bun run sync-version && bunx --bun vite build && rm -rf ../ccproxy/static/dashboard && cp -r build ../ccproxy/static/dashboard",
+    "preview": "bunx --bun vite preview",
+    "prepare": "svelte-kit sync || echo ''",
+    "check": "bunx sv check --tsconfig ./tsconfig.json && bunx biome check",
+    "check:watch": "bunx sv check --tsconfig ./tsconfig.json --watch",
+    "lint": "bunx biome lint",
+    "format": "bunx biome format --write",
+    "format:check": "bunx biome format"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.0",
+    "@sveltejs/adapter-auto": "^6.0.0",
+    "@sveltejs/adapter-static": "^3.0.8",
+    "@sveltejs/kit": "^2.22.0",
+    "@sveltejs/vite-plugin-svelte": "^6.0.0",
+    "svelte": "^5.0.0",
+    "svelte-check": "^4.0.0",
+    "typescript": "^5.0.0",
+    "vite": "^7.0.4"
+  },
+  "dependencies": {
+    "@tailwindcss/vite": "^4.1.11",
+    "chart.js": "^4.5.0",
+    "chartjs-adapter-date-fns": "^3.0.0",
+    "d3-array": "^3.2.4",
+    "d3-scale": "^4.0.2",
+    "date-fns": "^4.1.0",
+    "layerchart": "^1.0.11",
+    "tailwindcss": "^4.1.11"
+  }
 }

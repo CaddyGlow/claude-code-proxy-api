@@ -10,7 +10,7 @@ interface Props {
 const { metric, class: additionalClass = "", isFlashing = false }: Props = $props();
 
 // Helper functions
-function getIconSVG(iconType: string): string {
+function _getIconSVG(iconType: string): string {
 	const icons: Record<string, string> = {
 		requests: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"/>',
 		success: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>',
@@ -20,7 +20,7 @@ function getIconSVG(iconType: string): string {
 	return icons[iconType] || '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>';
 }
 
-function getIconColorClass(color: string): string {
+function _getIconColorClass(color: string): string {
 	const classes: Record<string, string> = {
 		blue: "bg-blue-100 text-blue-600",
 		green: "bg-green-100 text-green-600",
@@ -31,7 +31,7 @@ function getIconColorClass(color: string): string {
 	return classes[color] || "bg-gray-100 text-gray-600";
 }
 
-function getChangeColorClass(color: string): string {
+function _getChangeColorClass(color: string): string {
 	const classes: Record<string, string> = {
 		green: "text-green-600",
 		red: "text-red-600",
@@ -45,17 +45,17 @@ function getChangeColorClass(color: string): string {
 	<div class="flex items-center justify-between">
 		<div>
 			<p class="text-sm font-medium text-gray-500" id="metric-{metric.id}">{metric.label}</p>
-			<p class="text-2xl font-bold text-gray-900 mt-1 px-2 py-1 rounded transition-all duration-700 {isFlashing ? 'bg-blue-200' : ''}" aria-describedby="metric-{metric.id}">{metric.value}</p>
+			<p class="text-2xl font-bold text-gray-900 mt-1" aria-describedby="metric-{metric.id}">{metric.value}</p>
 		</div>
-		<div class="w-12 h-12 {getIconColorClass(metric.iconColor)} rounded-lg flex items-center justify-center">
+		<div class="w-12 h-12 {_getIconColorClass(metric.iconColor)} rounded-lg flex items-center justify-center">
 			<svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-				{@html getIconSVG(metric.icon)}
+				{@html _getIconSVG(metric.icon)}
 			</svg>
 		</div>
 	</div>
 	{#if metric.change}
 		<div class="mt-2 flex items-center text-sm">
-			<span class="{getChangeColorClass(metric.changeColor || 'gray')}">{metric.change}</span>
+			<span class="{_getChangeColorClass(metric.changeColor || 'gray')}">{metric.change}</span>
 			<span class="text-gray-500 ml-1">vs previous period</span>
 		</div>
 	{/if}

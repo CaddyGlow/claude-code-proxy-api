@@ -15,8 +15,6 @@ export type {
 	QueryRequest,
 	QueryResponse,
 	ErrorResponse,
-	// Legacy types for backward compatibility
+	// Dashboard types
 	MetricCard,
-	AnyMetric,
-	MetricsSummary,
 } from "./metrics";

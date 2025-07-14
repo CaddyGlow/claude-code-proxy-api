@@ -3,11 +3,11 @@
 import type { ModelUsageData } from "$lib/types/metrics";
 
 // Utility function for formatting numbers
-function formatNumber(num: number): string {
+function _formatNumber(num: number): string {
 	if (num >= 1000000) {
-		return (num / 1000000).toFixed(1) + 'M';
+		return `${(num / 1000000).toFixed(1)}M`;
 	} else if (num >= 1000) {
-		return (num / 1000).toFixed(1) + 'K';
+		return `${(num / 1000).toFixed(1)}K`;
 	}
 	return num.toString();
 }
@@ -21,7 +21,7 @@ interface Props {
 const { modelData, class: className = "", isFlashing = false }: Props = $props();
 
 // Prepare chart data using $derived for reactivity
-const chartData = $derived.by(() => {
+const _chartData = $derived.by(() => {
 	if (!modelData || modelData.length === 0) {
 		return [];
 	}
@@ -53,14 +53,14 @@ const colors = [
 	<div class="bg-white rounded-lg shadow p-6">
 		<h3 class="text-lg font-semibold text-gray-900 mb-4">Model Usage</h3>
 
-		{#if chartData.length === 0}
+		{#if _chartData.length === 0}
 			<div class="h-64 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center">
 				<p class="text-gray-500">No model usage data available</p>
 			</div>
 		{:else}
 			<!-- Improved Grid Layout with Better Alignment -->
 			<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-				{#each chartData as model}
+				{#each _chartData as model}
 					<div class="bg-gray-50 border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
 						<!-- Model Header with Color Indicator -->
 						<div class="flex items-center justify-between mb-3">
@@ -80,7 +80,7 @@ const colors = [
 						<div class="grid grid-cols-2 gap-3 mb-3 text-sm">
 							<div class="text-center">
 								<div class="text-xs text-gray-500 uppercase tracking-wide">Requests</div>
-								<div class="font-semibold text-gray-900 px-2 py-1 rounded transition-all duration-700 {isFlashing ? 'bg-blue-200' : ''}">{formatNumber(model.value)}</div>
+								<div class="font-semibold text-gray-900 px-2 py-1 rounded transition-all duration-700 {isFlashing ? 'bg-blue-200' : ''}">{_formatNumber(model.value)}</div>
 							</div>
 							<div class="text-center">
 								<div class="text-xs text-gray-500 uppercase tracking-wide">Avg Response</div>
@@ -112,28 +112,28 @@ const colors = [
 			</div>
 
 			<!-- Summary Statistics -->
-			{#if chartData.length > 0}
+			{#if _chartData.length > 0}
 				<div class="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
 					<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 text-center">
 						<div>
 							<div class="text-sm text-blue-600 font-medium">Total Models</div>
-							<div class="text-2xl font-bold text-blue-800 px-2 py-1 rounded transition-all duration-700 {isFlashing ? 'bg-white' : ''}">{chartData.length}</div>
+							<div class="text-2xl font-bold text-blue-800 px-2 py-1 rounded transition-all duration-700 {isFlashing ? 'bg-white' : ''}">{_chartData.length}</div>
 						</div>
 						<div>
 							<div class="text-sm text-blue-600 font-medium">Total Requests</div>
-							<div class="text-2xl font-bold text-blue-800 px-2 py-1 rounded transition-all duration-700 {isFlashing ? 'bg-white' : ''}">{chartData.reduce((sum, m) => sum + m.value, 0).toLocaleString()}</div>
+							<div class="text-2xl font-bold text-blue-800 px-2 py-1 rounded transition-all duration-700 {isFlashing ? 'bg-white' : ''}">{_chartData.reduce((sum: number, m) => sum + m.value, 0).toLocaleString()}</div>
 						</div>
 						<div>
 							<div class="text-sm text-blue-600 font-medium">Avg Response Time</div>
 							<div class="text-2xl font-bold text-blue-800 px-2 py-1 rounded transition-all duration-700 {isFlashing ? 'bg-white' : ''}">
-								{(chartData.reduce((sum, m) => sum + m.avgResponseTime, 0) / chartData.length).toFixed(2)}s
+								{(_chartData.reduce((sum: number, m) => sum + m.avgResponseTime, 0) / _chartData.length).toFixed(2)}s
 							</div>
 						</div>
-						{#if chartData.some(m => m.totalCost > 0)}
+						{#if _chartData.some(m => m.totalCost > 0)}
 							<div>
 								<div class="text-sm text-blue-600 font-medium">Total Cost</div>
 								<div class="text-2xl font-bold text-green-600 px-2 py-1 rounded transition-all duration-700 {isFlashing ? 'bg-white' : ''}">
-									${chartData.reduce((sum, m) => sum + m.totalCost, 0).toFixed(4)}
+									${_chartData.reduce((sum: number, m) => sum + m.totalCost, 0).toFixed(4)}
 								</div>
 							</div>
 						{/if}
