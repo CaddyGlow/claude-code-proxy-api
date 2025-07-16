@@ -4,6 +4,8 @@ import type {
 	MetricsStatusResponse,
 	QueryResponse,
 	AnalyticsRequestParams,
+	EntriesResponse,
+	EntriesRequestParams,
 } from "$lib/types/metrics";
 import { MetricsApiError } from "$lib/types/metrics";
 
@@ -127,6 +129,19 @@ export class MetricsApiClient {
 			body: JSON.stringify({ query }),
 		});
 
+		return await response.json();
+	}
+
+	/**
+	 * Get database entries
+	 */
+	public async getEntries(
+		params: EntriesRequestParams = {},
+	): Promise<EntriesResponse> {
+		const queryString = this.buildQueryString(params);
+		const url = `${this.baseUrl}/entries${queryString}`;
+
+		const response = await this.makeRequest(url);
 		return await response.json();
 	}
 

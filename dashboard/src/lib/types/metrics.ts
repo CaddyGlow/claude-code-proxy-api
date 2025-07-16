@@ -100,6 +100,39 @@ export interface MetricCard {
 	changeColor: string;
 }
 
+export interface DatabaseEntry {
+	timestamp: string;
+	request_id: string;
+	model: string;
+	service_type: string;
+	response_time: number | null;
+	status: string;
+	cost_usd: number | null;
+	tokens_input: number | null;
+	tokens_output: number | null;
+	error_message?: string;
+	method?: string;
+	endpoint?: string;
+}
+
+export interface EntriesResponse {
+	entries: DatabaseEntry[];
+	total_count: number;
+	limit: number;
+	offset: number;
+	order_by: string;
+	order_desc: boolean;
+	page: number;
+	total_pages: number;
+}
+
+export interface EntriesRequestParams {
+	limit?: number;
+	offset?: number;
+	order_by?: string;
+	order_desc?: boolean;
+}
+
 export type ServiceType = "anthropic" | "openai";
 
 export type ApiMetricType =

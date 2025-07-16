@@ -414,6 +414,16 @@ onMount(() => {
 					</div>
 				</div>
 				<div class="flex items-center space-x-4">
+					<!-- Navigation Links -->
+					<div class="flex items-center space-x-2">
+						<a
+							href="/metrics/dashboard/entries"
+							class="px-3 py-1 text-sm font-medium text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+						>
+							Database Entries
+						</a>
+					</div>
+
 					<!-- Filter Controls -->
 					<div class="flex items-center space-x-2">
 						<select
