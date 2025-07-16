@@ -315,7 +315,7 @@ function setupSSE() {
 						// Replace data with new analytics snapshot
 						if (streamEvent.data) {
 							analyticsData = streamEvent.data;
-							
+
 							// Trigger visual flash effect for metric cards
 							_triggerFlashEffect();
 
