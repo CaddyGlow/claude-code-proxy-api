@@ -50,7 +50,7 @@ function _getChangeColorClass(color: string): string {
 }
 </script>
 
-<div class="bg-white rounded-lg shadow p-6 border border-gray-200 {additionalClass}" role="region" aria-labelledby="metric-{metric.id}">
+<div class="bg-white rounded-lg shadow p-6 border border-gray-200 {additionalClass} transition-all duration-300 {isFlashing ? 'ring-2 ring-blue-500 ring-opacity-50 shadow-lg scale-105' : ''}" role="region" aria-labelledby="metric-{metric.id}">
 	<div class="flex items-center justify-between">
 		<div>
 			<p class="text-sm font-medium text-gray-500" id="metric-{metric.id}">{metric.label}</p>

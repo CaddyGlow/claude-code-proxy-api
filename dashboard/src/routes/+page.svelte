@@ -315,6 +315,9 @@ function setupSSE() {
 						// Replace data with new analytics snapshot
 						if (streamEvent.data) {
 							analyticsData = streamEvent.data;
+							
+							// Trigger visual flash effect for metric cards
+							_triggerFlashEffect();
 
 							// Create detailed notification with analytics info
 							const data = streamEvent.data;
@@ -655,7 +658,7 @@ onMount(() => {
 						<div class="flex items-center space-x-2 text-xs">
 							<!-- Total Events -->
 							<div class="bg-blue-100 text-blue-800 px-2 py-1 rounded-full transition-all duration-300 {_isCounterFlashing ? 'scale-110 bg-blue-200' : ''}">
-								<span class="font-medium">{formatCount(_totalSSEEvents)}</span>
+								<span class="font-medium">{_formatCount(_totalSSEEvents)}</span>
 								<span class="opacity-75">events</span>
 							</div>
 
@@ -663,11 +666,11 @@ onMount(() => {
 							{#if _requestStartCount > 0 || _requestCompleteCount > 0}
 								<div class="flex items-center space-x-1">
 									<div class="bg-orange-100 text-orange-800 px-2 py-1 rounded-full transition-all duration-300 {_isCounterFlashing ? 'scale-110 bg-orange-200' : ''}">
-										<span class="font-medium">{formatCount(_requestStartCount)}</span>
+										<span class="font-medium">{_formatCount(_requestStartCount)}</span>
 										<span class="opacity-75">started</span>
 									</div>
 									<div class="bg-green-100 text-green-800 px-2 py-1 rounded-full transition-all duration-300 {_isCounterFlashing ? 'scale-110 bg-green-200' : ''}">
-										<span class="font-medium">{formatCount(_requestCompleteCount)}</span>
+										<span class="font-medium">{_formatCount(_requestCompleteCount)}</span>
 										<span class="opacity-75">done</span>
 									</div>
 								</div>
@@ -676,7 +679,7 @@ onMount(() => {
 							<!-- Analytics Updates -->
 							{#if _analyticsUpdateCount > 0}
 								<div class="bg-purple-100 text-purple-800 px-2 py-1 rounded-full transition-all duration-300 {_isCounterFlashing ? 'scale-110 bg-purple-200' : ''}">
-									<span class="font-medium">{formatCount(_analyticsUpdateCount)}</span>
+									<span class="font-medium">{_formatCount(_analyticsUpdateCount)}</span>
 									<span class="opacity-75">updates</span>
 								</div>
 							{/if}
@@ -699,7 +702,7 @@ onMount(() => {
 			<!-- Metric Cards -->
 			<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
 				{#each _dashboardMetrics as metric (metric.id)}
-					<MetricCard {metric} />
+					<MetricCard {metric} isFlashing={_isFlashing} />
 				{/each}
 			</div>
 
