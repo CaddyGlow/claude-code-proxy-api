@@ -82,12 +82,15 @@ export interface MetricsStreamEvent {
 	type:
 		| "connection"
 		| "analytics_update"
+		| "new_request"
+		| "request_start"
+		| "request_complete"
 		| "heartbeat"
 		| "error"
 		| "disconnect";
 	message: string;
 	timestamp: string;
-	data?: AnalyticsResponse;
+	data?: AnalyticsResponse | DatabaseEntry;
 }
 
 export interface MetricCard {
@@ -101,18 +104,35 @@ export interface MetricCard {
 }
 
 export interface DatabaseEntry {
-	timestamp: string;
+	// Core request identification
 	request_id: string;
-	model: string;
+	timestamp: string;
+
+	// Request details
+	method: string;
+	endpoint: string;
+	path: string;
+	query: string;
+	client_ip: string;
+	user_agent: string;
+
+	// Service and model info
 	service_type: string;
-	response_time: number | null;
-	status: string;
-	cost_usd: number | null;
-	tokens_input: number | null;
-	tokens_output: number | null;
-	error_message?: string;
-	method?: string;
-	endpoint?: string;
+	model: string;
+	streaming: boolean;
+
+	// Response details
+	status_code: number;
+	duration_ms: number;
+	duration_seconds: number;
+
+	// Token and cost tracking
+	tokens_input: number;
+	tokens_output: number;
+	cache_read_tokens: number;
+	cache_write_tokens: number;
+	cost_usd: number;
+	cost_sdk_usd: number;
 }
 
 export interface EntriesResponse {
@@ -131,6 +151,7 @@ export interface EntriesRequestParams {
 	offset?: number;
 	order_by?: string;
 	order_desc?: boolean;
+	service_type?: string;
 }
 
 export type ServiceType = "anthropic" | "openai";

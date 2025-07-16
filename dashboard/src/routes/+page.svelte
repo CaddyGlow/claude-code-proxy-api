@@ -8,8 +8,6 @@ import type {
 import { metricsApi } from "$lib/services/metrics-api";
 import { onMount } from "svelte";
 import { browser } from "$app/environment";
-import { isDevelopmentVersion, formatVersionForDisplay } from "$lib/version";
-import MetricCard from "$lib/components/MetricCard.svelte";
 
 // Dynamic imports for browser-only chart components (to avoid SSR issues with LayerChart)
 let _chartComponents = $state<{
@@ -25,13 +23,22 @@ let notifications = $state<
 >([]);
 let _notificationCount = $state(0);
 
+// SSE event counters
+let _totalSSEEvents = $state(0);
+let _requestStartCount = $state(0);
+let _requestCompleteCount = $state(0);
+let _analyticsUpdateCount = $state(0);
+
 // Flash effect state for live updates
 let _isFlashing = $state(false);
 
+// Counter animation states
+let _isCounterFlashing = $state(false);
+
 // Filter states for enhanced dashboard views
-let selectedServiceType = $state<string | null>(null);
-let selectedModel = $state<string | null>(null);
-let selectedTimeRange = $state<number>(24); // Hours
+const selectedServiceType = $state<string | null>(null);
+const selectedModel = $state<string | null>(null);
+const selectedTimeRange = $state<number>(24); // Hours
 
 // Derived metrics for cards using new Analytics API
 const _dashboardMetrics = $derived<MetricCardType[]>([
@@ -41,75 +48,101 @@ const _dashboardMetrics = $derived<MetricCardType[]>([
 		value: analyticsData?.summary?.total_requests?.toString() ?? "0",
 		icon: "requests",
 		iconColor: "blue",
-		change: "+0%", // TODO: Calculate change from previous period
-		changeColor: "green",
+		change:
+			analyticsData?.summary?.total_successful_requests &&
+			analyticsData?.summary?.total_requests
+				? `${analyticsData.summary.total_successful_requests}/${analyticsData.summary.total_requests}`
+				: "0/0",
+		changeColor: "gray",
 	},
 	{
 		id: "success-rate",
 		label: "Success Rate",
-		value: analyticsData?.summary
-			? `${((analyticsData.summary.successful_requests / analyticsData.summary.total_requests) * 100).toFixed(1)}%`
+		value: analyticsData?.request_analytics?.success_rate
+			? `${analyticsData.request_analytics.success_rate.toFixed(1)}%`
 			: "0%",
 		icon: "success",
-		iconColor: "green",
-		change: "+0%", // TODO: Calculate change
-		changeColor: "green",
+		iconColor:
+			analyticsData?.request_analytics?.success_rate &&
+			analyticsData.request_analytics.success_rate >= 95
+				? "green"
+				: "yellow",
+		change: analyticsData?.request_analytics?.error_requests
+			? `${analyticsData.request_analytics.error_requests} errors`
+			: "0 errors",
+		changeColor:
+			analyticsData?.request_analytics?.error_requests &&
+			analyticsData.request_analytics.error_requests > 0
+				? "red"
+				: "green",
 	},
 	{
-		id: "avg-response-time",
-		label: "Avg Response Time",
-		value: analyticsData?.summary?.avg_response_time
-			? `${analyticsData.summary.avg_response_time.toFixed(0)}s`
-			: "0s",
+		id: "avg-duration",
+		label: "Avg Duration",
+		value: analyticsData?.summary?.avg_duration_ms
+			? `${analyticsData.summary.avg_duration_ms.toFixed(0)}ms`
+			: "0ms",
 		icon: "time",
 		iconColor: "yellow",
-		change: "+0%", // TODO: Calculate change
-		changeColor: "green",
+		change: analyticsData?.summary?.avg_duration_ms
+			? analyticsData.summary.avg_duration_ms < 1000
+				? "Fast"
+				: "Slow"
+			: "N/A",
+		changeColor:
+			analyticsData?.summary?.avg_duration_ms &&
+			analyticsData.summary.avg_duration_ms < 1000
+				? "green"
+				: "yellow",
 	},
 	{
 		id: "total-cost",
 		label: "Total Cost",
 		value: analyticsData?.summary?.total_cost_usd
 			? `$${analyticsData.summary.total_cost_usd.toFixed(4)}`
-			: "$0.00",
+			: "$0.0000",
 		icon: "cost",
 		iconColor: "green",
-		change: "+0%", // TODO: Calculate change
-		changeColor: "green",
+		change: analyticsData?.token_analytics?.total_tokens
+			? `${analyticsData.token_analytics.total_tokens.toLocaleString()} tokens`
+			: "0 tokens",
+		changeColor: "blue",
 	},
 ]);
 
 // Derived data for charts using new Analytics API
 const _serviceBreakdownData = $derived.by(() => {
-	if (!analyticsData?.service_breakdown) {
+	if (!analyticsData?.service_type_breakdown) {
 		return [];
 	}
 
-	const total = analyticsData.service_breakdown.reduce(
+	// Convert the nested object structure to an array
+	const services = Object.entries(analyticsData.service_type_breakdown).map(
+		([service_type, data]: [string, any]) => ({
+			service_type,
+			request_count: data.request_count,
+			avg_duration_ms: data.avg_duration_ms,
+			total_cost_usd: data.total_cost_usd,
+			total_tokens_input: data.total_tokens_input,
+			total_tokens_output: data.total_tokens_output,
+		}),
+	);
+
+	const total = services.reduce(
 		(sum: number, service: any) => sum + service.request_count,
 		0,
 	);
 
-	return analyticsData.service_breakdown.map((service: any) => ({
+	return services.map((service: any) => ({
 		...service,
 		percentage: total > 0 ? (service.request_count / total) * 100 : 0,
 	}));
 });
 
 const _modelUsageData = $derived.by(() => {
-	if (!analyticsData?.model_stats) {
-		return [];
-	}
-
-	const total = analyticsData.model_stats.reduce(
-		(sum: number, model: any) => sum + model.request_count,
-		0,
-	);
-
-	return analyticsData.model_stats.map((model: any) => ({
-		...model,
-		percentage: total > 0 ? (model.request_count / total) * 100 : 0,
-	}));
+	// Since the backend doesn't currently provide model-level stats,
+	// we'll show a message indicating this feature is not yet available
+	return [];
 });
 
 const _timeSeriesData = $derived.by(() => {
@@ -210,6 +243,22 @@ function _triggerFlashEffect() {
 	}, 1500); // Flash for 1.5 seconds for better visibility
 }
 
+// Counter flash effect for SSE events
+function _triggerCounterFlash() {
+	_isCounterFlashing = true;
+	setTimeout(() => {
+		_isCounterFlashing = false;
+	}, 300); // Quick flash for counter updates
+}
+
+// Format numbers for display (e.g., 1234 -> 1.2K)
+function _formatCount(count: number): string {
+	if (count < 1000) return count.toString();
+	if (count < 10000) return `${(count / 1000).toFixed(1)}K`;
+	if (count < 1000000) return `${Math.floor(count / 1000)}K`;
+	return `${(count / 1000000).toFixed(1)}M`;
+}
+
 // Add notification function
 function addNotification(message: string) {
 	const notification = {
@@ -248,12 +297,21 @@ function setupSSE() {
 			try {
 				const streamEvent: MetricsStreamEvent = JSON.parse(event.data);
 
+				// Increment total SSE events counter
+				_totalSSEEvents++;
+
+				// Trigger counter flash animation
+				_triggerCounterFlash();
+
 				switch (streamEvent.type) {
 					case "connection":
 						addNotification(`Connected: ${streamEvent.message}`);
 						break;
 
 					case "analytics_update":
+						// Increment analytics update counter
+						_analyticsUpdateCount++;
+
 						// Replace data with new analytics snapshot
 						if (streamEvent.data) {
 							analyticsData = streamEvent.data;
@@ -268,18 +326,21 @@ function setupSSE() {
 									`${data.summary.total_requests} requests`,
 								);
 
-								if (
-									data.summary.total_tokens_input > 0 ||
-									data.summary.total_tokens_output > 0
-								) {
-									const totalTokens =
-										(data.summary.total_tokens_input || 0) +
-										(data.summary.total_tokens_output || 0);
+								// Add success rate info
+								if (data.request_analytics?.success_rate) {
 									notificationDetails.push(
-										`${totalTokens.toLocaleString()} tokens`,
+										`${data.request_analytics.success_rate.toFixed(1)}% success`,
 									);
 								}
 
+								// Add token info
+								if (data.token_analytics?.total_tokens > 0) {
+									notificationDetails.push(
+										`${data.token_analytics.total_tokens.toLocaleString()} tokens`,
+									);
+								}
+
+								// Add cost info
 								if (data.summary.total_cost_usd > 0) {
 									notificationDetails.push(
 										`$${data.summary.total_cost_usd.toFixed(4)}`,
@@ -287,21 +348,21 @@ function setupSSE() {
 								}
 							}
 
-							// Add most active model
-							if (data.model_stats && data.model_stats.length > 0) {
-								const topModel = data.model_stats.reduce((prev, current) =>
-									prev.request_count > current.request_count ? prev : current,
-								);
-								if (topModel.request_count > 0) {
-									notificationDetails.push(`Top: ${topModel.model}`);
-								}
-							}
-
 							// Add service type info
-							if (data.service_breakdown && data.service_breakdown.length > 0) {
-								const activeServices = data.service_breakdown
-									.filter((s) => s.request_count > 0)
-									.map((s) => s.service_type.replace("_service", ""))
+							if (
+								data.service_type_breakdown &&
+								Object.keys(data.service_type_breakdown).length > 0
+							) {
+								const activeServices = Object.entries(
+									data.service_type_breakdown,
+								)
+									.filter(
+										([_, serviceData]: [string, any]) =>
+											serviceData.request_count > 0,
+									)
+									.map(([service_type, _]: [string, any]) =>
+										service_type.replace("_service", ""),
+									)
 									.join(", ");
 								if (activeServices) {
 									notificationDetails.push(`Services: ${activeServices}`);
@@ -314,6 +375,126 @@ function setupSSE() {
 									: "New data available";
 
 							addNotification(detailedMessage);
+						}
+						break;
+
+					case "new_request":
+						// Show new request notification with detailed info
+						if (streamEvent.data) {
+							const requestData = streamEvent.data;
+							const details = [];
+
+							if (requestData.model) {
+								details.push(`Model: ${requestData.model}`);
+							}
+							if (requestData.service_type) {
+								details.push(
+									`Service: ${requestData.service_type.replace("_service", "")}`,
+								);
+							}
+							if (requestData.tokens_input || requestData.tokens_output) {
+								const totalTokens =
+									(requestData.tokens_input || 0) +
+									(requestData.tokens_output || 0);
+								details.push(`${totalTokens} tokens`);
+							}
+							if (requestData.cost_usd > 0) {
+								details.push(`$${requestData.cost_usd.toFixed(4)}`);
+							}
+
+							const message =
+								details.length > 0
+									? `New Request: ${details.join(" | ")}`
+									: "New request completed";
+
+							addNotification(message);
+						}
+						break;
+
+					case "request_start":
+						// Increment request start counter
+						_requestStartCount++;
+
+						// Show request start notification
+						if (streamEvent.data) {
+							const requestData = streamEvent.data;
+							const details = [];
+
+							if (requestData.method && requestData.path) {
+								details.push(`${requestData.method} ${requestData.path}`);
+							}
+							if (requestData.client_ip) {
+								details.push(`from ${requestData.client_ip}`);
+							}
+
+							const message =
+								details.length > 0
+									? `Request Started: ${details.join(" ")}`
+									: "Request started";
+
+							addNotification(message);
+						}
+						break;
+
+					case "request_complete":
+						// Increment request complete counter
+						_requestCompleteCount++;
+
+						// Show request completion notification with detailed info
+						if (streamEvent.data) {
+							const requestData = streamEvent.data;
+							const details = [];
+
+							// Add status code
+							if (requestData.status_code) {
+								const statusText =
+									requestData.status_code >= 200 &&
+									requestData.status_code < 300
+										? "✓"
+										: "✗";
+								details.push(`${statusText} ${requestData.status_code}`);
+							}
+
+							// Add duration
+							if (requestData.duration_ms) {
+								const duration =
+									requestData.duration_ms < 1000
+										? `${Math.round(requestData.duration_ms)}ms`
+										: `${(requestData.duration_ms / 1000).toFixed(2)}s`;
+								details.push(duration);
+							}
+
+							// Add model
+							if (requestData.model) {
+								details.push(`Model: ${requestData.model}`);
+							}
+
+							// Add service type
+							if (requestData.service_type) {
+								details.push(
+									`Service: ${requestData.service_type.replace("_service", "")}`,
+								);
+							}
+
+							// Add tokens
+							if (requestData.tokens_input || requestData.tokens_output) {
+								const totalTokens =
+									(requestData.tokens_input || 0) +
+									(requestData.tokens_output || 0);
+								details.push(`${totalTokens} tokens`);
+							}
+
+							// Add cost
+							if (requestData.cost_usd > 0) {
+								details.push(`$${requestData.cost_usd.toFixed(4)}`);
+							}
+
+							const message =
+								details.length > 0
+									? `Request Complete: ${details.join(" | ")}`
+									: "Request completed";
+
+							addNotification(message);
 						}
 						break;
 
@@ -440,7 +621,7 @@ onMount(() => {
 							<option value={168}>Last 7 Days</option>
 						</select>
 
-						{#if analyticsData?.service_breakdown && analyticsData.service_breakdown.length > 0}
+						{#if analyticsData?.service_type_breakdown && Object.keys(analyticsData.service_type_breakdown).length > 0}
 							<select
 								value={selectedServiceType || ""}
 								onchange={(e) => {
@@ -450,41 +631,57 @@ onMount(() => {
 								class="text-sm border border-gray-300 rounded px-2 py-1"
 							>
 								<option value="">All Services</option>
-								{#each analyticsData.service_breakdown as service}
-									<option value={service.service_type}>{service.service_type}</option>
+								{#each Object.keys(analyticsData.service_type_breakdown) as service_type}
+									<option value={service_type}>{service_type}</option>
 								{/each}
 							</select>
 						{/if}
 
-						{#if analyticsData?.model_stats && analyticsData.model_stats.length > 0}
-							<select
-								value={selectedModel || ""}
-								onchange={(e) => {
-									selectedModel = e.currentTarget.value || null;
-									_reloadAnalytics();
-								}}
-								class="text-sm border border-gray-300 rounded px-2 py-1"
-							>
-								<option value="">All Models</option>
-								{#each analyticsData.model_stats as model}
-									<option value={model.model}>{model.model}</option>
-								{/each}
-							</select>
-						{/if}
+						<!-- Model filter not available since backend doesn't provide model stats -->
+						<!-- {#if analyticsData?.model_stats && analyticsData.model_stats.length > 0} -->
+						<!--   Model filtering would go here when backend supports it -->
+						<!-- {/if} -->
 					</div>
 
-					<div class="flex items-center space-x-1">
-						<div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-						<span class="text-sm text-gray-500">Live</span>
-					</div>
-					{#if _notificationCount > 0}
-						<div class="flex items-center space-x-1 text-sm text-blue-600">
-							<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-								<path d="M10 2C5.03 2 1 6.03 1 11c0 1.33.29 2.59.8 3.73L1 19l4.27-.8C6.41 18.71 7.67 19 9 19h1c4.97 0 9-4.03 9-9s-4.03-9-9-9z"/>
-							</svg>
-							<span>{_notificationCount} events</span>
+					<!-- Live Activity Panel -->
+					<div class="flex items-center space-x-3">
+						<!-- Live Status Indicator -->
+						<div class="flex items-center space-x-1">
+							<div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+							<span class="text-sm text-gray-500">Live</span>
 						</div>
-					{/if}
+
+						<!-- SSE Event Counters -->
+						<div class="flex items-center space-x-2 text-xs">
+							<!-- Total Events -->
+							<div class="bg-blue-100 text-blue-800 px-2 py-1 rounded-full transition-all duration-300 {_isCounterFlashing ? 'scale-110 bg-blue-200' : ''}">
+								<span class="font-medium">{formatCount(_totalSSEEvents)}</span>
+								<span class="opacity-75">events</span>
+							</div>
+
+							<!-- Request Flow -->
+							{#if _requestStartCount > 0 || _requestCompleteCount > 0}
+								<div class="flex items-center space-x-1">
+									<div class="bg-orange-100 text-orange-800 px-2 py-1 rounded-full transition-all duration-300 {_isCounterFlashing ? 'scale-110 bg-orange-200' : ''}">
+										<span class="font-medium">{formatCount(_requestStartCount)}</span>
+										<span class="opacity-75">started</span>
+									</div>
+									<div class="bg-green-100 text-green-800 px-2 py-1 rounded-full transition-all duration-300 {_isCounterFlashing ? 'scale-110 bg-green-200' : ''}">
+										<span class="font-medium">{formatCount(_requestCompleteCount)}</span>
+										<span class="opacity-75">done</span>
+									</div>
+								</div>
+							{/if}
+
+							<!-- Analytics Updates -->
+							{#if _analyticsUpdateCount > 0}
+								<div class="bg-purple-100 text-purple-800 px-2 py-1 rounded-full transition-all duration-300 {_isCounterFlashing ? 'scale-110 bg-purple-200' : ''}">
+									<span class="font-medium">{formatCount(_analyticsUpdateCount)}</span>
+									<span class="opacity-75">updates</span>
+								</div>
+							{/if}
+						</div>
+					</div>
 				</div>
 			</div>
 		</div>
@@ -524,36 +721,12 @@ onMount(() => {
 					{:else}
 						<div class="bg-white rounded-lg shadow p-6">
 							<h3 class="text-lg font-semibold text-gray-900 mb-4">Model Usage</h3>
-							{#if _modelUsageData.length > 0}
-								<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-									{#each _modelUsageData as model}
-										<div class="border rounded-lg p-4">
-											<div class="flex items-center justify-between mb-2">
-												<h4 class="font-medium text-gray-900">{model.model}</h4>
-												<span class="text-sm text-gray-500">{model.percentage.toFixed(1)}%</span>
-											</div>
-											<div class="space-y-1 text-sm text-gray-600">
-												<div class="flex justify-between">
-													<span>Requests:</span>
-													<span class="font-medium">{model.request_count}</span>
-												</div>
-												<div class="flex justify-between">
-													<span>Avg Response:</span>
-													<span class="font-medium">{model.avg_response_time.toFixed(2)}s</span>
-												</div>
-												<div class="flex justify-between">
-													<span>Total Cost:</span>
-													<span class="font-medium">${model.total_cost.toFixed(4)}</span>
-												</div>
-											</div>
-										</div>
-									{/each}
+							<div class="h-64 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center">
+								<div class="text-center">
+									<p class="text-gray-500 mb-2">Model-level statistics not available</p>
+									<p class="text-sm text-gray-400">The backend analytics API doesn't currently provide model breakdowns</p>
 								</div>
-							{:else}
-								<div class="h-64 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center">
-									<p class="text-gray-500">Loading chart...</p>
-								</div>
-							{/if}
+							</div>
 						</div>
 					{/if}
 				</div>

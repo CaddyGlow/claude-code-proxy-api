@@ -1,8 +1,7 @@
 <script lang="ts">
-import type { DatabaseEntry, EntriesResponse } from "$lib/types/metrics";
+import type { EntriesResponse } from "$lib/types/metrics";
 import { metricsApi } from "$lib/services/metrics-api";
 import { onMount } from "svelte";
-import { browser } from "$app/environment";
 
 // Modern Svelte 5 reactive state
 let entriesData = $state<EntriesResponse | null>(null);
@@ -11,9 +10,10 @@ let _error = $state<string | null>(null);
 
 // Pagination and sorting state
 let currentPage = $state(1);
-let pageSize = $state(50);
+const pageSize = $state(50);
 let orderBy = $state("timestamp");
-let orderDesc = $state(false);
+let orderDesc = $state(true);
+const serviceTypeFilter = $state("!access_log"); // Default: exclude access_log
 
 // Derived computed values
 const _entries = $derived(entriesData?.entries || []);
@@ -31,6 +31,7 @@ async function loadEntries() {
 			offset: (currentPage - 1) * pageSize,
 			order_by: orderBy,
 			order_desc: orderDesc,
+			service_type: serviceTypeFilter,
 		};
 
 		entriesData = await metricsApi.getEntries(params);
@@ -45,19 +46,19 @@ async function loadEntries() {
 }
 
 // Pagination handlers
-function goToPage(page: number) {
+function _goToPage(page: number) {
 	currentPage = page;
 	loadEntries();
 }
 
-function nextPage() {
+function _nextPage() {
 	if (currentPage < _totalPages) {
 		currentPage++;
 		loadEntries();
 	}
 }
 
-function prevPage() {
+function _prevPage() {
 	if (currentPage > 1) {
 		currentPage--;
 		loadEntries();
@@ -65,7 +66,7 @@ function prevPage() {
 }
 
 // Sorting handlers
-function changeSorting(column: string) {
+function _changeSorting(column: string) {
 	if (orderBy === column) {
 		orderDesc = !orderDesc;
 	} else {
@@ -77,29 +78,48 @@ function changeSorting(column: string) {
 }
 
 // Format functions
-function formatTimestamp(timestamp: string): string {
+function _formatTimestamp(timestamp: string): string {
 	return new Date(timestamp).toLocaleString();
 }
 
-function formatCost(cost_usd: number | null): string {
+function _formatCost(cost_usd: number | null): string {
 	if (cost_usd === null || cost_usd === undefined) {
 		return "$0.0000";
 	}
 	return `$${cost_usd.toFixed(4)}`;
 }
 
-function formatResponseTime(time: number | null): string {
-	if (time === null || time === undefined) {
-		return "0.00s";
+function _formatDuration(durationMs: number): string {
+	if (durationMs === null || durationMs === undefined) {
+		return "0ms";
 	}
-	return `${time.toFixed(2)}s`;
+	if (durationMs < 1000) {
+		return `${durationMs.toFixed(0)}ms`;
+	}
+	return `${(durationMs / 1000).toFixed(2)}s`;
 }
 
-function formatTokens(input: number | null, output: number | null): string {
+function _formatTokens(input: number, output: number): string {
 	const inputTokens = input || 0;
 	const outputTokens = output || 0;
 	const total = inputTokens + outputTokens;
 	return `${total.toLocaleString()} (${inputTokens.toLocaleString()}/${outputTokens.toLocaleString()})`;
+}
+
+function _formatStatusCode(statusCode: number): {
+	text: string;
+	color: string;
+} {
+	if (statusCode >= 200 && statusCode < 300) {
+		return { text: `${statusCode} Success`, color: "green" };
+	}
+	if (statusCode >= 400 && statusCode < 500) {
+		return { text: `${statusCode} Client Error`, color: "red" };
+	}
+	if (statusCode >= 500) {
+		return { text: `${statusCode} Server Error`, color: "red" };
+	}
+	return { text: `${statusCode}`, color: "gray" };
 }
 
 // Initialize on mount
@@ -129,9 +149,25 @@ onMount(() => {
 						<p class="text-sm text-gray-500">Last {_totalCount} request entries</p>
 					</div>
 				</div>
-				
+
 				<!-- Controls -->
 				<div class="flex items-center space-x-4">
+					<select
+						value={serviceTypeFilter}
+						onchange={(e) => {
+							serviceTypeFilter = e.currentTarget.value;
+							currentPage = 1;
+							loadEntries();
+						}}
+						class="text-sm border border-gray-300 rounded px-2 py-1"
+					>
+						<option value="">All Services</option>
+						<option value="!access_log">Exclude Access Logs</option>
+						<option value="proxy_service">Proxy Service Only</option>
+						<option value="claude_sdk_service">Claude SDK Only</option>
+						<option value="proxy_service,claude_sdk_service">API Services Only</option>
+					</select>
+
 					<select
 						value={pageSize}
 						onchange={(e) => {
@@ -145,7 +181,7 @@ onMount(() => {
 						<option value={50}>50 per page</option>
 						<option value={100}>100 per page</option>
 					</select>
-					
+
 					<button
 						onclick={loadEntries}
 						class="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700"
@@ -198,7 +234,7 @@ onMount(() => {
 						Showing {((currentPage - 1) * pageSize) + 1} to {Math.min(currentPage * pageSize, _totalCount)} of {_totalCount} entries
 					</p>
 				</div>
-				
+
 				<div class="overflow-x-auto">
 					<table class="min-w-full divide-y divide-gray-200">
 						<thead class="bg-gray-50">
@@ -242,11 +278,11 @@ onMount(() => {
 								</th>
 								<th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
 									<button
-										onclick={() => changeSorting("response_time")}
+										onclick={() => changeSorting("duration_ms")}
 										class="group flex items-center space-x-1 hover:text-gray-700"
 									>
-										<span>Response Time</span>
-										{#if orderBy === "response_time"}
+										<span>Duration</span>
+										{#if orderBy === "duration_ms"}
 											<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
 												{#if orderDesc}
 													<path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/>
@@ -258,7 +294,21 @@ onMount(() => {
 									</button>
 								</th>
 								<th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-									Status
+									<button
+										onclick={() => changeSorting("status_code")}
+										class="group flex items-center space-x-1 hover:text-gray-700"
+									>
+										<span>Status</span>
+										{#if orderBy === "status_code"}
+											<svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+												{#if orderDesc}
+													<path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"/>
+												{:else}
+													<path d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z"/>
+												{/if}
+											</svg>
+										{/if}
+									</button>
 								</th>
 								<th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
 									<button
@@ -287,6 +337,7 @@ onMount(() => {
 						</thead>
 						<tbody class="bg-white divide-y divide-gray-200">
 							{#each _entries as entry (entry.request_id)}
+								{@const statusInfo = formatStatusCode(entry.status_code)}
 								<tr class="hover:bg-gray-50">
 									<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
 										{formatTimestamp(entry.timestamp)}
@@ -302,22 +353,26 @@ onMount(() => {
 										</span>
 									</td>
 									<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-										{formatResponseTime(entry.response_time)}
+										{formatDuration(entry.duration_ms)}
 									</td>
 									<td class="px-6 py-4 whitespace-nowrap">
-										{#if entry.status === "success"}
+										{#if statusInfo.color === "green"}
 											<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
 												<svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
 													<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
 												</svg>
-												Success
+												{statusInfo.text}
 											</span>
-										{:else}
+										{:else if statusInfo.color === "red"}
 											<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
 												<svg class="w-3 h-3 mr-1" fill="currentColor" viewBox="0 0 20 20">
 													<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
 												</svg>
-												{entry.status}
+												{statusInfo.text}
+											</span>
+										{:else}
+											<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+												{statusInfo.text}
 											</span>
 										{/if}
 									</td>
@@ -331,18 +386,11 @@ onMount(() => {
 										{entry.request_id}
 									</td>
 								</tr>
-								{#if entry.error_message}
-									<tr class="bg-red-50">
-										<td colspan="8" class="px-6 py-2 text-sm text-red-700">
-											<strong>Error:</strong> {entry.error_message}
-										</td>
-									</tr>
-								{/if}
 							{/each}
 						</tbody>
 					</table>
 				</div>
-				
+
 				<!-- Pagination -->
 				{#if _totalPages > 1}
 					<div class="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
@@ -386,7 +434,7 @@ onMount(() => {
 											<path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd"/>
 										</svg>
 									</button>
-									
+
 									{#each Array.from({length: Math.min(5, _totalPages)}, (_, i) => i + Math.max(1, currentPage - 2)) as page}
 										{#if page <= _totalPages}
 											<button
@@ -397,7 +445,7 @@ onMount(() => {
 											</button>
 										{/if}
 									{/each}
-									
+
 									<button
 										onclick={nextPage}
 										disabled={currentPage === _totalPages}
