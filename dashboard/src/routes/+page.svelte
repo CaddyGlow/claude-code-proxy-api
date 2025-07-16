@@ -8,6 +8,8 @@ import type {
 import { metricsApi } from "$lib/services/metrics-api";
 import { onMount } from "svelte";
 import { browser } from "$app/environment";
+import MetricCard from "$lib/components/MetricCard.svelte";
+import { isDevelopmentVersion, formatVersionForDisplay } from "$lib/version";
 
 // Dynamic imports for browser-only chart components (to avoid SSR issues with LayerChart)
 let _chartComponents = $state<{
@@ -36,9 +38,12 @@ let _isFlashing = $state(false);
 let _isCounterFlashing = $state(false);
 
 // Filter states for enhanced dashboard views
-const selectedServiceType = $state<string | null>(null);
-const selectedModel = $state<string | null>(null);
-const selectedTimeRange = $state<number>(24); // Hours
+let selectedServiceType = $state<string | null>(null);
+let selectedModel = $state<string | null>(null);
+let selectedTimeRange = $state<number>(24); // Hours
+let selectedStatusCode = $state<number | null>(null);
+let selectedStreaming = $state<boolean | null>(null);
+let showAdvancedFilters = $state<boolean>(false);
 
 // Derived metrics for cards using new Analytics API
 const _dashboardMetrics = $derived<MetricCardType[]>([
@@ -166,9 +171,11 @@ async function loadDashboardData() {
 		const params = {
 			hours: selectedTimeRange,
 			...(selectedServiceType && {
-				service_type: selectedServiceType as ServiceType,
+				service_type: selectedServiceType,
 			}),
 			...(selectedModel && { model: selectedModel }),
+			...(selectedStatusCode && { status_code: selectedStatusCode }),
+			...(selectedStreaming !== null && { streaming: selectedStreaming }),
 		};
 
 		analyticsData = await metricsApi.getAnalytics(params);
@@ -187,9 +194,11 @@ async function _reloadAnalytics() {
 		const params = {
 			hours: selectedTimeRange,
 			...(selectedServiceType && {
-				service_type: selectedServiceType as ServiceType,
+				service_type: selectedServiceType,
 			}),
 			...(selectedModel && { model: selectedModel }),
+			...(selectedStatusCode && { status_code: selectedStatusCode }),
+			...(selectedStreaming !== null && { streaming: selectedStreaming }),
 		};
 
 		analyticsData = await metricsApi.getAnalytics(params);
@@ -624,26 +633,133 @@ onMount(() => {
 							<option value={168}>Last 7 Days</option>
 						</select>
 
-						{#if analyticsData?.service_type_breakdown && Object.keys(analyticsData.service_type_breakdown).length > 0}
-							<select
-								value={selectedServiceType || ""}
-								onchange={(e) => {
-									selectedServiceType = e.currentTarget.value || null;
+						<button
+							onclick={() => { showAdvancedFilters = !showAdvancedFilters; }}
+							class="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded transition-colors {showAdvancedFilters ? 'bg-blue-100 text-blue-800' : ''}"
+						>
+							Advanced Filters
+						</button>
+					</div>
+
+					<!-- Advanced Filters -->
+					{#if showAdvancedFilters}
+						<div class="flex items-center space-x-2 bg-gray-50 px-3 py-2 rounded">
+							<!-- Status Code Filter -->
+							<div class="flex items-center space-x-1">
+								<label class="text-xs font-medium text-gray-600">Status:</label>
+								<select
+									value={selectedStatusCode || ""}
+									onchange={(e) => {
+										selectedStatusCode = e.currentTarget.value ? Number(e.currentTarget.value) : null;
+										_reloadAnalytics();
+									}}
+									class="text-xs border border-gray-300 rounded px-1 py-0.5"
+								>
+									<option value="">All</option>
+									<option value={200}>200 OK</option>
+									<option value={400}>400 Bad Request</option>
+									<option value={401}>401 Unauthorized</option>
+									<option value={403}>403 Forbidden</option>
+									<option value={404}>404 Not Found</option>
+									<option value={500}>500 Server Error</option>
+									<option value={502}>502 Bad Gateway</option>
+									<option value={503}>503 Service Unavailable</option>
+								</select>
+							</div>
+
+							<!-- Streaming Filter -->
+							<div class="flex items-center space-x-1">
+								<label class="text-xs font-medium text-gray-600">Streaming:</label>
+								<select
+									value={selectedStreaming === null ? "" : selectedStreaming ? "true" : "false"}
+									onchange={(e) => {
+										const val = e.currentTarget.value;
+										selectedStreaming = val === "" ? null : val === "true";
+										_reloadAnalytics();
+									}}
+									class="text-xs border border-gray-300 rounded px-1 py-0.5"
+								>
+									<option value="">All</option>
+									<option value="true">Streaming</option>
+									<option value="false">Non-streaming</option>
+								</select>
+							</div>
+
+							<!-- Clear Advanced Filters -->
+							<button
+								onclick={() => {
+									selectedStatusCode = null;
+									selectedStreaming = null;
 									_reloadAnalytics();
 								}}
-								class="text-sm border border-gray-300 rounded px-2 py-1"
+								class="text-xs px-2 py-1 bg-red-100 hover:bg-red-200 text-red-800 rounded transition-colors"
 							>
-								<option value="">All Services</option>
+								Clear
+							</button>
+						</div>
+					{/if}
+
+					<!-- Service Type Filter (moved to separate line) -->
+					<div class="flex items-center space-x-4">
+						<!-- Service Type Filter -->
+						<div class="flex items-center space-x-2">
+							<label class="text-sm font-medium text-gray-700">Service:</label>
+							<input
+								type="text"
+								value={selectedServiceType || ""}
+								onchange={(e) => {
+									selectedServiceType = e.currentTarget.value.trim() || null;
+									_reloadAnalytics();
+								}}
+								placeholder="e.g., anthropic_service,openai_service or !access_log"
+								class="text-sm border border-gray-300 rounded px-2 py-1 w-64"
+								title="Filter by service type. Use comma-separated values for multiple services, or prefix with ! to exclude (e.g., !access_log)"
+							/>
+						</div>
+
+						<!-- Quick Service Filter Buttons -->
+						{#if analyticsData?.service_type_breakdown && Object.keys(analyticsData.service_type_breakdown).length > 0}
+							<div class="flex items-center space-x-1">
+								<button
+									onclick={() => { selectedServiceType = null; _reloadAnalytics(); }}
+									class="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded transition-colors {selectedServiceType === null ? 'bg-blue-100 text-blue-800' : ''}"
+								>
+									All
+								</button>
 								{#each Object.keys(analyticsData.service_type_breakdown) as service_type}
-									<option value={service_type}>{service_type}</option>
+									<button
+										onclick={() => { selectedServiceType = service_type; _reloadAnalytics(); }}
+										class="text-xs px-2 py-1 bg-gray-100 hover:bg-gray-200 rounded transition-colors {selectedServiceType === service_type ? 'bg-blue-100 text-blue-800' : ''}"
+									>
+										{service_type.replace('_service', '')}
+									</button>
 								{/each}
-							</select>
+							</div>
 						{/if}
 
-						<!-- Model filter not available since backend doesn't provide model stats -->
-						<!-- {#if analyticsData?.model_stats && analyticsData.model_stats.length > 0} -->
-						<!--   Model filtering would go here when backend supports it -->
-						<!-- {/if} -->
+						<!-- Model Filter -->
+						<div class="flex items-center space-x-2">
+							<label class="text-sm font-medium text-gray-700">Model:</label>
+							<input
+								type="text"
+								value={selectedModel || ""}
+								onchange={(e) => {
+									selectedModel = e.currentTarget.value.trim() || null;
+									_reloadAnalytics();
+								}}
+								placeholder="e.g., claude-3-5-sonnet-20241022"
+								class="text-sm border border-gray-300 rounded px-2 py-1 w-48"
+								title="Filter by model name"
+							/>
+							{#if selectedModel}
+								<button
+									onclick={() => { selectedModel = null; _reloadAnalytics(); }}
+									class="text-xs px-2 py-1 bg-red-100 hover:bg-red-200 text-red-800 rounded transition-colors"
+								>
+									Clear
+								</button>
+							{/if}
+						</div>
 					</div>
 
 					<!-- Live Activity Panel -->

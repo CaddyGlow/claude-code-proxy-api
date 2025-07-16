@@ -10,10 +10,10 @@ let _error = $state<string | null>(null);
 
 // Pagination and sorting state
 let currentPage = $state(1);
-const pageSize = $state(50);
+let pageSize = $state(50);
 let orderBy = $state("timestamp");
 let orderDesc = $state(true);
-const serviceTypeFilter = $state("!access_log"); // Default: exclude access_log
+let serviceTypeFilter = $state("!access_log"); // Default: exclude access_log
 
 // Derived computed values
 const _entries = $derived(entriesData?.entries || []);

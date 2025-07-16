@@ -166,10 +166,18 @@ export type ApiMetricType =
 
 export interface AnalyticsRequestParams {
 	hours?: number;
-	service_type?: ServiceType;
+	service_type?: string; // Support filtering patterns like "!access_log" or "anthropic,openai"
 	model?: string;
 	start_time?: string;
 	end_time?: string;
+	limit?: number;
+	offset?: number;
+	min_cost?: number;
+	max_cost?: number;
+	min_duration?: number;
+	max_duration?: number;
+	status_code?: number;
+	streaming?: boolean;
 }
 
 export interface ModelUsageData {

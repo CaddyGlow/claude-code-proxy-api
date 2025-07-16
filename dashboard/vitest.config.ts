@@ -9,6 +9,15 @@ export default defineConfig({
 		setupFiles: ["src/setupTests.ts"],
 		include: ["src/**/*.{test,spec}.{js,ts}"],
 		exclude: ["node_modules", "build", "e2e/**/*"],
+		fakeTimers: {
+			toFake: [
+				"setTimeout",
+				"clearTimeout",
+				"setInterval",
+				"clearInterval",
+				"Date",
+			],
+		},
 		coverage: {
 			provider: "v8",
 			reporter: ["text", "json", "html"],
