@@ -11,6 +11,7 @@ export interface SSEConnectionParams {
 export type SSEEventHandler = (event: MetricsStreamEvent) => void;
 export type SSEErrorHandler = (error: Error) => void;
 export type SSEStatusHandler = (connected: boolean) => void;
+export type SSEHandler = SSEEventHandler | SSEErrorHandler | SSEStatusHandler;
 
 export class SSEMetricsClient {
 	private eventSource: EventSource | null = null;
@@ -90,7 +91,7 @@ export class SSEMetricsClient {
 	addEventListener(type: "message", handler: SSEEventHandler): void;
 	addEventListener(type: "error", handler: SSEErrorHandler): void;
 	addEventListener(type: "status", handler: SSEStatusHandler): void;
-	addEventListener(type: string, handler: any): void {
+	addEventListener(type: string, handler: SSEHandler): void {
 		if (type in this.listeners) {
 			this.listeners[type as keyof typeof this.listeners].push(handler);
 		}
@@ -102,7 +103,7 @@ export class SSEMetricsClient {
 	removeEventListener(type: "message", handler: SSEEventHandler): void;
 	removeEventListener(type: "error", handler: SSEErrorHandler): void;
 	removeEventListener(type: "status", handler: SSEStatusHandler): void;
-	removeEventListener(type: string, handler: any): void {
+	removeEventListener(type: string, handler: SSEHandler): void {
 		if (type in this.listeners) {
 			const listeners = this.listeners[type as keyof typeof this.listeners];
 			const index = listeners.indexOf(handler);

@@ -10,7 +10,7 @@ import type {
 
 // Dynamic imports for browser-only chart components (to avoid SSR issues with LayerChart)
 let _chartComponents = $state<{
-	ModelUsageChart?: any;
+	ModelUsageChart?: typeof import("$lib/components/charts/ModelUsageChart.svelte").default;
 }>({});
 
 // Modern Svelte 5 reactive state using new Analytics API
@@ -118,7 +118,10 @@ const _serviceBreakdownData = $derived.by(() => {
 
 	// Convert the nested object structure to an array
 	const services = Object.entries(analyticsData.service_type_breakdown).map(
-		([service_type, data]: [string, any]) => ({
+		([service_type, data]: [
+			string,
+			NonNullable<typeof analyticsData.service_type_breakdown>[string],
+		]) => ({
 			service_type,
 			request_count: data.request_count,
 			avg_duration_ms: data.avg_duration_ms,
@@ -129,11 +132,11 @@ const _serviceBreakdownData = $derived.by(() => {
 	);
 
 	const total = services.reduce(
-		(sum: number, service: any) => sum + service.request_count,
+		(sum: number, service: { request_count: number }) => sum + service.request_count,
 		0
 	);
 
-	return services.map((service: any) => ({
+	return services.map((service: (typeof services)[number]) => ({
 		...service,
 		percentage: total > 0 ? (service.request_count / total) * 100 : 0,
 	}));
@@ -150,11 +153,13 @@ const _timeSeriesData = $derived.by(() => {
 		return [];
 	}
 
-	return analyticsData.hourly_data.map((item: any) => ({
-		timestamp: item.hour,
-		value: item.request_count,
-		label: `${item.request_count} requests`,
-	}));
+	return analyticsData.hourly_data.map(
+		(item: NonNullable<typeof analyticsData.hourly_data>[number]) => ({
+			timestamp: item.hour,
+			value: item.request_count,
+			label: `${item.request_count} requests`,
+		})
+	);
 });
 
 // Load initial data using new Analytics API
@@ -209,7 +214,9 @@ function playNotificationSound() {
 	try {
 		// Create a simple beep sound using Web Audio API
 		const audioContext = new (
-			window.AudioContext || (window as any).webkitAudioContext
+			window.AudioContext ||
+			(window as typeof window & { webkitAudioContext: typeof AudioContext })
+				.webkitAudioContext
 		)();
 		const oscillator = audioContext.createOscillator();
 		const gainNode = audioContext.createGain();
@@ -357,10 +364,16 @@ function setupSSE() {
 							) {
 								const activeServices = Object.entries(data.service_type_breakdown)
 									.filter(
-										([_, serviceData]: [string, any]) => serviceData.request_count > 0
+										([_, serviceData]: [
+											string,
+											NonNullable<typeof data.service_type_breakdown>[string],
+										]) => serviceData.request_count > 0
 									)
-									.map(([service_type, _]: [string, any]) =>
-										service_type.replace("_service", "")
+									.map(
+										([service_type, _]: [
+											string,
+											NonNullable<typeof data.service_type_breakdown>[string],
+										]) => service_type.replace("_service", "")
 									)
 									.join(", ");
 								if (activeServices) {

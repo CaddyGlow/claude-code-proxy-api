@@ -54,6 +54,16 @@ export interface AnalyticsResponse {
 		service_type: string;
 		request_count: number;
 	}>;
+	service_type_breakdown?: Record<
+		string,
+		{
+			request_count: number;
+			avg_duration_ms: number;
+			total_cost_usd: number;
+			total_tokens_input: number;
+			total_tokens_output: number;
+		}
+	>;
 }
 
 export interface StorageHealthResponse {
