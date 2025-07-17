@@ -24,3 +24,8 @@ vite.config.ts.timestamp-*
 
 # Auto-generated files
 src/lib/version.ts
+
+# Test artifacts
+/test-results
+/playwright-report
+*.png
