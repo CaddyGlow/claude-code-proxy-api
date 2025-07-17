@@ -3,47 +3,47 @@ import type { ModelUsageData } from "$lib/types/metrics";
 
 // Utility function for formatting numbers
 function _formatNumber(num: number): string {
-	if (num >= 1000000) {
-		return `${(num / 1000000).toFixed(1)}M`;
-	}
-	if (num >= 1000) {
-		return `${(num / 1000).toFixed(1)}K`;
-	}
-	return num.toString();
+  if (num >= 1000000) {
+    return `${(num / 1000000).toFixed(1)}M`;
+  }
+  if (num >= 1000) {
+    return `${(num / 1000).toFixed(1)}K`;
+  }
+  return num.toString();
 }
 
 interface Props {
-	modelData?: ModelUsageData[];
+  modelData?: ModelUsageData[];
 }
 
 const { modelData }: Props = $props();
 
 // Prepare chart data using $derived for reactivity
 const _chartData = $derived.by(() => {
-	if (!modelData || modelData.length === 0) {
-		return [];
-	}
+  if (!modelData || modelData.length === 0) {
+    return [];
+  }
 
-	return modelData.map((model, index) => ({
-		label: model.model,
-		value: model.request_count,
-		percentage: model.percentage,
-		avgResponseTime: model.avg_response_time,
-		totalCost: model.total_cost,
-		color: colors[index % colors.length],
-	}));
+  return modelData.map((model, index) => ({
+    label: model.model,
+    value: model.request_count,
+    percentage: model.percentage,
+    avgResponseTime: model.avg_response_time,
+    totalCost: model.total_cost,
+    color: colors[index % colors.length],
+  }));
 });
 
 // Color scheme for different models
 const colors = [
-	"rgb(59, 130, 246)", // blue-500
-	"rgb(34, 197, 94)", // green-500
-	"rgb(251, 146, 60)", // orange-400
-	"rgb(168, 85, 247)", // purple-500
-	"rgb(236, 72, 153)", // pink-500
-	"rgb(14, 165, 233)", // sky-500
-	"rgb(132, 204, 22)", // lime-500
-	"rgb(245, 101, 101)", // red-400
+  "rgb(59, 130, 246)", // blue-500
+  "rgb(34, 197, 94)", // green-500
+  "rgb(251, 146, 60)", // orange-400
+  "rgb(168, 85, 247)", // purple-500
+  "rgb(236, 72, 153)", // pink-500
+  "rgb(14, 165, 233)", // sky-500
+  "rgb(132, 204, 22)", // lime-500
+  "rgb(245, 101, 101)", // red-400
 ];
 </script>
 

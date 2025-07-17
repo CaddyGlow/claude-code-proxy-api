@@ -1,106 +1,107 @@
 {
-	"$schema": "https://biomejs.dev/schemas/2.1.1/schema.json",
-	"vcs": {
-		"enabled": true,
-		"clientKind": "git",
-		"useIgnoreFile": true
-	},
-	"files": {
-		"ignoreUnknown": true,
-		"includes": [
-			"**/*.js",
-			"**/*.jsx",
-			"**/*.ts",
-			"**/*.tsx",
-			"**/*.svelte",
-			"**/*.json"
-		]
-	},
-	"formatter": {
-		"enabled": true,
-		"indentStyle": "tab",
-		"lineWidth": 88
-	},
-	"linter": {
-		"enabled": true,
-		"rules": {
-			"recommended": true,
-			"complexity": {
-				"noEmptyTypeParameters": "error",
-				"noUselessLoneBlockStatements": "error"
-			},
-			"correctness": {
-				"noInvalidUseBeforeDeclaration": "error",
-				"noUnusedImports": "error",
-				"noUnusedPrivateClassMembers": "error",
-				"noUnusedVariables": "error",
-				"useHookAtTopLevel": "error"
-			},
-			"security": {
-				"noGlobalEval": "error"
-			},
-			"style": {
-				"useConsistentArrayType": "error",
-				"useExportType": "error",
-				"useImportType": "error",
-				"useForOf": "error",
-				"useNodejsImportProtocol": "error",
-				"useNumberNamespace": "error",
-				"useShorthandFunctionType": "error"
-			},
-			"suspicious": {
-				"noEmptyBlockStatements": "error",
-				"noGlobalAssign": "error",
-				"noMisleadingCharacterClass": "error",
-				"noThenProperty": "error",
-				"useAwait": "error"
-			}
-		}
-	},
-	"javascript": {
-		"formatter": {
-			"quoteStyle": "double",
-			"jsxQuoteStyle": "double",
-			"trailingCommas": "es5"
-		}
-	},
-	"assist": {
-		"enabled": true,
-		"actions": {
-			"source": {
-				"organizeImports": "on"
-			}
-		}
-	},
-	"overrides": [
-		{
-			"includes": [
-				"**/*.test.ts",
-				"**/*.spec.ts",
-				"**/test-utils/**",
-				"**/setupTests.ts"
-			],
-			"linter": {
-				"rules": {
-					"suspicious": {
-						"noEmptyBlockStatements": "off",
-						"noExplicitAny": "off"
-					}
-				}
-			}
-		},
-		{
-			"includes": ["**/*.svelte"],
-			"linter": {
-				"rules": {
-					"correctness": {
-						"noUnusedVariables": "off"
-					},
-					"suspicious": {
-						"noExplicitAny": "warn"
-					}
-				}
-			}
-		}
-	]
+  "$schema": "https://biomejs.dev/schemas/2.1.1/schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    "ignoreUnknown": true,
+    "includes": [
+      "**/*.js",
+      "**/*.jsx",
+      "**/*.ts",
+      "**/*.tsx",
+      "**/*.svelte",
+      "**/*.json"
+    ]
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 88
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "complexity": {
+        "noEmptyTypeParameters": "error",
+        "noUselessLoneBlockStatements": "error"
+      },
+      "correctness": {
+        "noInvalidUseBeforeDeclaration": "error",
+        "noUnusedImports": "error",
+        "noUnusedPrivateClassMembers": "error",
+        "noUnusedVariables": "error",
+        "useHookAtTopLevel": "error"
+      },
+      "security": {
+        "noGlobalEval": "error"
+      },
+      "style": {
+        "useConsistentArrayType": "error",
+        "useExportType": "error",
+        "useImportType": "error",
+        "useForOf": "error",
+        "useNodejsImportProtocol": "error",
+        "useNumberNamespace": "error",
+        "useShorthandFunctionType": "error"
+      },
+      "suspicious": {
+        "noEmptyBlockStatements": "error",
+        "noGlobalAssign": "error",
+        "noMisleadingCharacterClass": "error",
+        "noThenProperty": "error",
+        "useAwait": "error"
+      }
+    }
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "double",
+      "jsxQuoteStyle": "double",
+      "trailingCommas": "es5"
+    }
+  },
+  "assist": {
+    "enabled": true,
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
+  },
+  "overrides": [
+    {
+      "includes": [
+        "**/*.test.ts",
+        "**/*.spec.ts",
+        "**/test-utils/**",
+        "**/setupTests.ts"
+      ],
+      "linter": {
+        "rules": {
+          "suspicious": {
+            "noEmptyBlockStatements": "off",
+            "noExplicitAny": "off"
+          }
+        }
+      }
+    },
+    {
+      "includes": ["**/*.svelte"],
+      "linter": {
+        "rules": {
+          "correctness": {
+            "noUnusedVariables": "off"
+          },
+          "suspicious": {
+            "noExplicitAny": "warn"
+          }
+        }
+      }
+    }
+  ]
 }

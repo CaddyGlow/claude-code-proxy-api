@@ -3,14 +3,14 @@ import { onMount } from "svelte";
 import { browser } from "$app/environment";
 import { metricsApi } from "$lib/services/metrics-api";
 import type {
-	AnalyticsResponse,
-	MetricCard as MetricCardType,
-	MetricsStreamEvent,
+  AnalyticsResponse,
+  MetricCard as MetricCardType,
+  MetricsStreamEvent,
 } from "$lib/types/metrics";
 
 // Dynamic imports for browser-only chart components (to avoid SSR issues with LayerChart)
 let _chartComponents = $state<{
-	ModelUsageChart?: typeof import("$lib/components/charts/ModelUsageChart.svelte").default;
+  ModelUsageChart?: typeof import("$lib/components/charts/ModelUsageChart.svelte").default;
 }>({});
 
 // Modern Svelte 5 reactive state using new Analytics API
@@ -42,543 +42,543 @@ const _showAdvancedFilters = $state<boolean>(false);
 
 // Derived metrics for cards using new Analytics API
 const _dashboardMetrics = $derived<MetricCardType[]>([
-	{
-		id: "total-requests",
-		label: "Total Requests",
-		value: analyticsData?.summary?.total_requests?.toString() ?? "0",
-		icon: "requests",
-		iconColor: "blue",
-		change:
-			analyticsData?.summary?.total_successful_requests &&
-			analyticsData?.summary?.total_requests
-				? `${analyticsData.summary.total_successful_requests}/${analyticsData.summary.total_requests}`
-				: "0/0",
-		changeColor: "gray",
-	},
-	{
-		id: "success-rate",
-		label: "Success Rate",
-		value: analyticsData?.request_analytics?.success_rate
-			? `${analyticsData.request_analytics.success_rate.toFixed(1)}%`
-			: "0%",
-		icon: "success",
-		iconColor:
-			analyticsData?.request_analytics?.success_rate &&
-			analyticsData.request_analytics.success_rate >= 95
-				? "green"
-				: "yellow",
-		change: analyticsData?.request_analytics?.error_requests
-			? `${analyticsData.request_analytics.error_requests} errors`
-			: "0 errors",
-		changeColor:
-			analyticsData?.request_analytics?.error_requests &&
-			analyticsData.request_analytics.error_requests > 0
-				? "red"
-				: "green",
-	},
-	{
-		id: "avg-duration",
-		label: "Avg Duration",
-		value: analyticsData?.summary?.avg_duration_ms
-			? `${analyticsData.summary.avg_duration_ms.toFixed(0)}ms`
-			: "0ms",
-		icon: "time",
-		iconColor: "yellow",
-		change: analyticsData?.summary?.avg_duration_ms
-			? analyticsData.summary.avg_duration_ms < 1000
-				? "Fast"
-				: "Slow"
-			: "N/A",
-		changeColor:
-			analyticsData?.summary?.avg_duration_ms &&
-			analyticsData.summary.avg_duration_ms < 1000
-				? "green"
-				: "yellow",
-	},
-	{
-		id: "total-cost",
-		label: "Total Cost",
-		value: analyticsData?.summary?.total_cost_usd
-			? `$${analyticsData.summary.total_cost_usd.toFixed(4)}`
-			: "$0.0000",
-		icon: "cost",
-		iconColor: "green",
-		change: analyticsData?.token_analytics?.total_tokens
-			? `${analyticsData.token_analytics.total_tokens.toLocaleString()} tokens`
-			: "0 tokens",
-		changeColor: "blue",
-	},
+  {
+    id: "total-requests",
+    label: "Total Requests",
+    value: analyticsData?.summary?.total_requests?.toString() ?? "0",
+    icon: "requests",
+    iconColor: "blue",
+    change:
+      analyticsData?.summary?.total_successful_requests &&
+      analyticsData?.summary?.total_requests
+        ? `${analyticsData.summary.total_successful_requests}/${analyticsData.summary.total_requests}`
+        : "0/0",
+    changeColor: "gray",
+  },
+  {
+    id: "success-rate",
+    label: "Success Rate",
+    value: analyticsData?.request_analytics?.success_rate
+      ? `${analyticsData.request_analytics.success_rate.toFixed(1)}%`
+      : "0%",
+    icon: "success",
+    iconColor:
+      analyticsData?.request_analytics?.success_rate &&
+      analyticsData.request_analytics.success_rate >= 95
+        ? "green"
+        : "yellow",
+    change: analyticsData?.request_analytics?.error_requests
+      ? `${analyticsData.request_analytics.error_requests} errors`
+      : "0 errors",
+    changeColor:
+      analyticsData?.request_analytics?.error_requests &&
+      analyticsData.request_analytics.error_requests > 0
+        ? "red"
+        : "green",
+  },
+  {
+    id: "avg-duration",
+    label: "Avg Duration",
+    value: analyticsData?.summary?.avg_duration_ms
+      ? `${analyticsData.summary.avg_duration_ms.toFixed(0)}ms`
+      : "0ms",
+    icon: "time",
+    iconColor: "yellow",
+    change: analyticsData?.summary?.avg_duration_ms
+      ? analyticsData.summary.avg_duration_ms < 1000
+        ? "Fast"
+        : "Slow"
+      : "N/A",
+    changeColor:
+      analyticsData?.summary?.avg_duration_ms &&
+      analyticsData.summary.avg_duration_ms < 1000
+        ? "green"
+        : "yellow",
+  },
+  {
+    id: "total-cost",
+    label: "Total Cost",
+    value: analyticsData?.summary?.total_cost_usd
+      ? `$${analyticsData.summary.total_cost_usd.toFixed(4)}`
+      : "$0.0000",
+    icon: "cost",
+    iconColor: "green",
+    change: analyticsData?.token_analytics?.total_tokens
+      ? `${analyticsData.token_analytics.total_tokens.toLocaleString()} tokens`
+      : "0 tokens",
+    changeColor: "blue",
+  },
 ]);
 
 // Derived data for charts using new Analytics API
 const _serviceBreakdownData = $derived.by(() => {
-	if (!analyticsData?.service_type_breakdown) {
-		return [];
-	}
+  if (!analyticsData?.service_type_breakdown) {
+    return [];
+  }
 
-	// Convert the nested object structure to an array
-	const services = Object.entries(analyticsData.service_type_breakdown).map(
-		([service_type, data]: [
-			string,
-			NonNullable<typeof analyticsData.service_type_breakdown>[string],
-		]) => ({
-			service_type,
-			request_count: data.request_count,
-			avg_duration_ms: data.avg_duration_ms,
-			total_cost_usd: data.total_cost_usd,
-			total_tokens_input: data.total_tokens_input,
-			total_tokens_output: data.total_tokens_output,
-		})
-	);
+  // Convert the nested object structure to an array
+  const services = Object.entries(analyticsData.service_type_breakdown).map(
+    ([service_type, data]: [
+      string,
+      NonNullable<typeof analyticsData.service_type_breakdown>[string],
+    ]) => ({
+      service_type,
+      request_count: data.request_count,
+      avg_duration_ms: data.avg_duration_ms,
+      total_cost_usd: data.total_cost_usd,
+      total_tokens_input: data.total_tokens_input,
+      total_tokens_output: data.total_tokens_output,
+    })
+  );
 
-	const total = services.reduce(
-		(sum: number, service: { request_count: number }) => sum + service.request_count,
-		0
-	);
+  const total = services.reduce(
+    (sum: number, service: { request_count: number }) => sum + service.request_count,
+    0
+  );
 
-	return services.map((service: (typeof services)[number]) => ({
-		...service,
-		percentage: total > 0 ? (service.request_count / total) * 100 : 0,
-	}));
+  return services.map((service: (typeof services)[number]) => ({
+    ...service,
+    percentage: total > 0 ? (service.request_count / total) * 100 : 0,
+  }));
 });
 
 const _modelUsageData = $derived.by(() => {
-	// Since the backend doesn't currently provide model-level stats,
-	// we'll show a message indicating this feature is not yet available
-	return [];
+  // Since the backend doesn't currently provide model-level stats,
+  // we'll show a message indicating this feature is not yet available
+  return [];
 });
 
 const _timeSeriesData = $derived.by(() => {
-	if (!analyticsData?.hourly_data) {
-		return [];
-	}
+  if (!analyticsData?.hourly_data) {
+    return [];
+  }
 
-	return analyticsData.hourly_data.map(
-		(item: NonNullable<typeof analyticsData.hourly_data>[number]) => ({
-			timestamp: item.hour,
-			value: item.request_count,
-			label: `${item.request_count} requests`,
-		})
-	);
+  return analyticsData.hourly_data.map(
+    (item: NonNullable<typeof analyticsData.hourly_data>[number]) => ({
+      timestamp: item.hour,
+      value: item.request_count,
+      label: `${item.request_count} requests`,
+    })
+  );
 });
 
 // Load initial data using new Analytics API
 async function loadDashboardData() {
-	try {
-		_isLoading = true;
+  try {
+    _isLoading = true;
 
-		// Load analytics data with current filters
-		const params = {
-			hours: selectedTimeRange,
-			...(selectedServiceType && {
-				service_type: selectedServiceType,
-			}),
-			...(selectedModel && { model: selectedModel }),
-			...(selectedStatusCode && { status_code: selectedStatusCode }),
-			...(selectedStreaming !== null && { streaming: selectedStreaming }),
-		};
+    // Load analytics data with current filters
+    const params = {
+      hours: selectedTimeRange,
+      ...(selectedServiceType && {
+        service_type: selectedServiceType,
+      }),
+      ...(selectedModel && { model: selectedModel }),
+      ...(selectedStatusCode && { status_code: selectedStatusCode }),
+      ...(selectedStreaming !== null && { streaming: selectedStreaming }),
+    };
 
-		analyticsData = await metricsApi.getAnalytics(params);
-	} catch (error) {
-		if (import.meta.env.DEV) {
-			console.error("Failed to load analytics data:", error);
-		}
-	} finally {
-		_isLoading = false;
-	}
+    analyticsData = await metricsApi.getAnalytics(params);
+  } catch (error) {
+    if (import.meta.env.DEV) {
+      console.error("Failed to load analytics data:", error);
+    }
+  } finally {
+    _isLoading = false;
+  }
 }
 
 // Function to reload data when filters change
 async function _reloadAnalytics() {
-	try {
-		const params = {
-			hours: selectedTimeRange,
-			...(selectedServiceType && {
-				service_type: selectedServiceType,
-			}),
-			...(selectedModel && { model: selectedModel }),
-			...(selectedStatusCode && { status_code: selectedStatusCode }),
-			...(selectedStreaming !== null && { streaming: selectedStreaming }),
-		};
+  try {
+    const params = {
+      hours: selectedTimeRange,
+      ...(selectedServiceType && {
+        service_type: selectedServiceType,
+      }),
+      ...(selectedModel && { model: selectedModel }),
+      ...(selectedStatusCode && { status_code: selectedStatusCode }),
+      ...(selectedStreaming !== null && { streaming: selectedStreaming }),
+    };
 
-		analyticsData = await metricsApi.getAnalytics(params);
-	} catch (error) {
-		if (import.meta.env.DEV) {
-			console.error("Failed to reload analytics data:", error);
-		}
-	}
+    analyticsData = await metricsApi.getAnalytics(params);
+  } catch (error) {
+    if (import.meta.env.DEV) {
+      console.error("Failed to reload analytics data:", error);
+    }
+  }
 }
 
 // Audio notification function
 function playNotificationSound() {
-	try {
-		// Create a simple beep sound using Web Audio API
-		const audioContext = new (
-			window.AudioContext ||
-			(window as typeof window & { webkitAudioContext: typeof AudioContext })
-				.webkitAudioContext
-		)();
-		const oscillator = audioContext.createOscillator();
-		const gainNode = audioContext.createGain();
+  try {
+    // Create a simple beep sound using Web Audio API
+    const audioContext = new (
+      window.AudioContext ||
+      (window as typeof window & { webkitAudioContext: typeof AudioContext })
+        .webkitAudioContext
+    )();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
 
-		oscillator.connect(gainNode);
-		gainNode.connect(audioContext.destination);
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
 
-		oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
-		oscillator.frequency.setValueAtTime(600, audioContext.currentTime + 0.1);
+    oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
+    oscillator.frequency.setValueAtTime(600, audioContext.currentTime + 0.1);
 
-		gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-		gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
 
-		oscillator.start(audioContext.currentTime);
-		oscillator.stop(audioContext.currentTime + 0.2);
-	} catch (_error) {
-		// Audio notification not available
-	}
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.2);
+  } catch (_error) {
+    // Audio notification not available
+  }
 }
 
 // Flash effect function for live updates
 function _triggerFlashEffect() {
-	if (import.meta.env.DEV) {
-		console.log("Triggering flash effect");
-	}
-	_isFlashing = true;
-	setTimeout(() => {
-		_isFlashing = false;
-		if (import.meta.env.DEV) {
-			console.log("Flash effect ended");
-		}
-	}, 1500); // Flash for 1.5 seconds for better visibility
+  if (import.meta.env.DEV) {
+    console.log("Triggering flash effect");
+  }
+  _isFlashing = true;
+  setTimeout(() => {
+    _isFlashing = false;
+    if (import.meta.env.DEV) {
+      console.log("Flash effect ended");
+    }
+  }, 1500); // Flash for 1.5 seconds for better visibility
 }
 
 // Counter flash effect for SSE events
 function _triggerCounterFlash() {
-	_isCounterFlashing = true;
-	setTimeout(() => {
-		_isCounterFlashing = false;
-	}, 300); // Quick flash for counter updates
+  _isCounterFlashing = true;
+  setTimeout(() => {
+    _isCounterFlashing = false;
+  }, 300); // Quick flash for counter updates
 }
 
 // Format numbers for display (e.g., 1234 -> 1.2K)
 function _formatCount(count: number): string {
-	if (count < 1000) return count.toString();
-	if (count < 10000) return `${(count / 1000).toFixed(1)}K`;
-	if (count < 1000000) return `${Math.floor(count / 1000)}K`;
-	return `${(count / 1000000).toFixed(1)}M`;
+  if (count < 1000) return count.toString();
+  if (count < 10000) return `${(count / 1000).toFixed(1)}K`;
+  if (count < 1000000) return `${Math.floor(count / 1000)}K`;
+  return `${(count / 1000000).toFixed(1)}M`;
 }
 
 // Add notification function
 function addNotification(message: string) {
-	const notification = {
-		id: Date.now().toString(),
-		message,
-		timestamp: new Date(),
-	};
+  const notification = {
+    id: Date.now().toString(),
+    message,
+    timestamp: new Date(),
+  };
 
-	notifications = [notification, ...notifications.slice(0, 4)]; // Keep last 5
-	_notificationCount++;
+  notifications = [notification, ...notifications.slice(0, 4)]; // Keep last 5
+  _notificationCount++;
 
-	// Play sound
-	playNotificationSound();
+  // Play sound
+  playNotificationSound();
 
-	// Auto-remove after 5 seconds
-	setTimeout(() => {
-		notifications = notifications.filter((n) => n.id !== notification.id);
-	}, 5000);
+  // Auto-remove after 5 seconds
+  setTimeout(() => {
+    notifications = notifications.filter((n) => n.id !== notification.id);
+  }, 5000);
 }
 
 // Setup SSE for real-time updates using new stream format
 function setupSSE() {
-	try {
-		eventSource = metricsApi.createSSEConnection();
+  try {
+    eventSource = metricsApi.createSSEConnection();
 
-		// Add event listener for when the connection opens
-		eventSource.onopen = () => {
-			if (import.meta.env.DEV) {
-				console.log("SSE connection opened");
-			}
-			addNotification("Connected to live stream");
-		};
+    // Add event listener for when the connection opens
+    eventSource.onopen = () => {
+      if (import.meta.env.DEV) {
+        console.log("SSE connection opened");
+      }
+      addNotification("Connected to live stream");
+    };
 
-		// Handle new SSE event format
-		eventSource.onmessage = (event) => {
-			try {
-				const streamEvent: MetricsStreamEvent = JSON.parse(event.data);
+    // Handle new SSE event format
+    eventSource.onmessage = (event) => {
+      try {
+        const streamEvent: MetricsStreamEvent = JSON.parse(event.data);
 
-				// Increment total SSE events counter
-				_totalSSEEvents++;
+        // Increment total SSE events counter
+        _totalSSEEvents++;
 
-				// Trigger counter flash animation
-				_triggerCounterFlash();
+        // Trigger counter flash animation
+        _triggerCounterFlash();
 
-				switch (streamEvent.type) {
-					case "connection":
-						addNotification(`Connected: ${streamEvent.message}`);
-						break;
+        switch (streamEvent.type) {
+          case "connection":
+            addNotification(`Connected: ${streamEvent.message}`);
+            break;
 
-					case "analytics_update":
-						// Increment analytics update counter
-						_analyticsUpdateCount++;
+          case "analytics_update":
+            // Increment analytics update counter
+            _analyticsUpdateCount++;
 
-						// Replace data with new analytics snapshot
-						if (streamEvent.data) {
-							analyticsData = streamEvent.data;
+            // Replace data with new analytics snapshot
+            if (streamEvent.data) {
+              analyticsData = streamEvent.data;
 
-							// Trigger visual flash effect for metric cards
-							_triggerFlashEffect();
+              // Trigger visual flash effect for metric cards
+              _triggerFlashEffect();
 
-							// Create detailed notification with analytics info
-							const data = streamEvent.data;
-							const notificationDetails = [];
+              // Create detailed notification with analytics info
+              const data = streamEvent.data;
+              const notificationDetails = [];
 
-							// Add summary info
-							if (data.summary) {
-								notificationDetails.push(`${data.summary.total_requests} requests`);
+              // Add summary info
+              if (data.summary) {
+                notificationDetails.push(`${data.summary.total_requests} requests`);
 
-								// Add success rate info
-								if (data.request_analytics?.success_rate) {
-									notificationDetails.push(
-										`${data.request_analytics.success_rate.toFixed(1)}% success`
-									);
-								}
+                // Add success rate info
+                if (data.request_analytics?.success_rate) {
+                  notificationDetails.push(
+                    `${data.request_analytics.success_rate.toFixed(1)}% success`
+                  );
+                }
 
-								// Add token info
-								if (data.token_analytics?.total_tokens > 0) {
-									notificationDetails.push(
-										`${data.token_analytics.total_tokens.toLocaleString()} tokens`
-									);
-								}
+                // Add token info
+                if (data.token_analytics?.total_tokens > 0) {
+                  notificationDetails.push(
+                    `${data.token_analytics.total_tokens.toLocaleString()} tokens`
+                  );
+                }
 
-								// Add cost info
-								if (data.summary.total_cost_usd > 0) {
-									notificationDetails.push(
-										`$${data.summary.total_cost_usd.toFixed(4)}`
-									);
-								}
-							}
+                // Add cost info
+                if (data.summary.total_cost_usd > 0) {
+                  notificationDetails.push(
+                    `$${data.summary.total_cost_usd.toFixed(4)}`
+                  );
+                }
+              }
 
-							// Add service type info
-							if (
-								data.service_type_breakdown &&
-								Object.keys(data.service_type_breakdown).length > 0
-							) {
-								const activeServices = Object.entries(data.service_type_breakdown)
-									.filter(
-										([_, serviceData]: [
-											string,
-											NonNullable<typeof data.service_type_breakdown>[string],
-										]) => serviceData.request_count > 0
-									)
-									.map(
-										([service_type, _]: [
-											string,
-											NonNullable<typeof data.service_type_breakdown>[string],
-										]) => service_type.replace("_service", "")
-									)
-									.join(", ");
-								if (activeServices) {
-									notificationDetails.push(`Services: ${activeServices}`);
-								}
-							}
+              // Add service type info
+              if (
+                data.service_type_breakdown &&
+                Object.keys(data.service_type_breakdown).length > 0
+              ) {
+                const activeServices = Object.entries(data.service_type_breakdown)
+                  .filter(
+                    ([_, serviceData]: [
+                      string,
+                      NonNullable<typeof data.service_type_breakdown>[string],
+                    ]) => serviceData.request_count > 0
+                  )
+                  .map(
+                    ([service_type, _]: [
+                      string,
+                      NonNullable<typeof data.service_type_breakdown>[string],
+                    ]) => service_type.replace("_service", "")
+                  )
+                  .join(", ");
+                if (activeServices) {
+                  notificationDetails.push(`Services: ${activeServices}`);
+                }
+              }
 
-							const detailedMessage =
-								notificationDetails.length > 0
-									? `Update: ${notificationDetails.join(" | ")}`
-									: "New data available";
+              const detailedMessage =
+                notificationDetails.length > 0
+                  ? `Update: ${notificationDetails.join(" | ")}`
+                  : "New data available";
 
-							addNotification(detailedMessage);
-						}
-						break;
+              addNotification(detailedMessage);
+            }
+            break;
 
-					case "new_request":
-						// Show new request notification with detailed info
-						if (streamEvent.data) {
-							const requestData = streamEvent.data;
-							const details = [];
+          case "new_request":
+            // Show new request notification with detailed info
+            if (streamEvent.data) {
+              const requestData = streamEvent.data;
+              const details = [];
 
-							if (requestData.model) {
-								details.push(`Model: ${requestData.model}`);
-							}
-							if (requestData.service_type) {
-								details.push(
-									`Service: ${requestData.service_type.replace("_service", "")}`
-								);
-							}
-							if (requestData.tokens_input || requestData.tokens_output) {
-								const totalTokens =
-									(requestData.tokens_input || 0) + (requestData.tokens_output || 0);
-								details.push(`${totalTokens} tokens`);
-							}
-							if (requestData.cost_usd > 0) {
-								details.push(`$${requestData.cost_usd.toFixed(4)}`);
-							}
+              if (requestData.model) {
+                details.push(`Model: ${requestData.model}`);
+              }
+              if (requestData.service_type) {
+                details.push(
+                  `Service: ${requestData.service_type.replace("_service", "")}`
+                );
+              }
+              if (requestData.tokens_input || requestData.tokens_output) {
+                const totalTokens =
+                  (requestData.tokens_input || 0) + (requestData.tokens_output || 0);
+                details.push(`${totalTokens} tokens`);
+              }
+              if (requestData.cost_usd > 0) {
+                details.push(`$${requestData.cost_usd.toFixed(4)}`);
+              }
 
-							const message =
-								details.length > 0
-									? `New Request: ${details.join(" | ")}`
-									: "New request completed";
+              const message =
+                details.length > 0
+                  ? `New Request: ${details.join(" | ")}`
+                  : "New request completed";
 
-							addNotification(message);
-						}
-						break;
+              addNotification(message);
+            }
+            break;
 
-					case "request_start":
-						// Increment request start counter
-						_requestStartCount++;
+          case "request_start":
+            // Increment request start counter
+            _requestStartCount++;
 
-						// Show request start notification
-						if (streamEvent.data) {
-							const requestData = streamEvent.data;
-							const details = [];
+            // Show request start notification
+            if (streamEvent.data) {
+              const requestData = streamEvent.data;
+              const details = [];
 
-							if (requestData.method && requestData.path) {
-								details.push(`${requestData.method} ${requestData.path}`);
-							}
-							if (requestData.client_ip) {
-								details.push(`from ${requestData.client_ip}`);
-							}
+              if (requestData.method && requestData.path) {
+                details.push(`${requestData.method} ${requestData.path}`);
+              }
+              if (requestData.client_ip) {
+                details.push(`from ${requestData.client_ip}`);
+              }
 
-							const message =
-								details.length > 0
-									? `Request Started: ${details.join(" ")}`
-									: "Request started";
+              const message =
+                details.length > 0
+                  ? `Request Started: ${details.join(" ")}`
+                  : "Request started";
 
-							addNotification(message);
-						}
-						break;
+              addNotification(message);
+            }
+            break;
 
-					case "request_complete":
-						// Increment request complete counter
-						_requestCompleteCount++;
+          case "request_complete":
+            // Increment request complete counter
+            _requestCompleteCount++;
 
-						// Show request completion notification with detailed info
-						if (streamEvent.data) {
-							const requestData = streamEvent.data;
-							const details = [];
+            // Show request completion notification with detailed info
+            if (streamEvent.data) {
+              const requestData = streamEvent.data;
+              const details = [];
 
-							// Add status code
-							if (requestData.status_code) {
-								const statusText =
-									requestData.status_code >= 200 && requestData.status_code < 300
-										? "✓"
-										: "✗";
-								details.push(`${statusText} ${requestData.status_code}`);
-							}
+              // Add status code
+              if (requestData.status_code) {
+                const statusText =
+                  requestData.status_code >= 200 && requestData.status_code < 300
+                    ? "✓"
+                    : "✗";
+                details.push(`${statusText} ${requestData.status_code}`);
+              }
 
-							// Add duration
-							if (requestData.duration_ms) {
-								const duration =
-									requestData.duration_ms < 1000
-										? `${Math.round(requestData.duration_ms)}ms`
-										: `${(requestData.duration_ms / 1000).toFixed(2)}s`;
-								details.push(duration);
-							}
+              // Add duration
+              if (requestData.duration_ms) {
+                const duration =
+                  requestData.duration_ms < 1000
+                    ? `${Math.round(requestData.duration_ms)}ms`
+                    : `${(requestData.duration_ms / 1000).toFixed(2)}s`;
+                details.push(duration);
+              }
 
-							// Add model
-							if (requestData.model) {
-								details.push(`Model: ${requestData.model}`);
-							}
+              // Add model
+              if (requestData.model) {
+                details.push(`Model: ${requestData.model}`);
+              }
 
-							// Add service type
-							if (requestData.service_type) {
-								details.push(
-									`Service: ${requestData.service_type.replace("_service", "")}`
-								);
-							}
+              // Add service type
+              if (requestData.service_type) {
+                details.push(
+                  `Service: ${requestData.service_type.replace("_service", "")}`
+                );
+              }
 
-							// Add tokens
-							if (requestData.tokens_input || requestData.tokens_output) {
-								const totalTokens =
-									(requestData.tokens_input || 0) + (requestData.tokens_output || 0);
-								details.push(`${totalTokens} tokens`);
-							}
+              // Add tokens
+              if (requestData.tokens_input || requestData.tokens_output) {
+                const totalTokens =
+                  (requestData.tokens_input || 0) + (requestData.tokens_output || 0);
+                details.push(`${totalTokens} tokens`);
+              }
 
-							// Add cost
-							if (requestData.cost_usd > 0) {
-								details.push(`$${requestData.cost_usd.toFixed(4)}`);
-							}
+              // Add cost
+              if (requestData.cost_usd > 0) {
+                details.push(`$${requestData.cost_usd.toFixed(4)}`);
+              }
 
-							const message =
-								details.length > 0
-									? `Request Complete: ${details.join(" | ")}`
-									: "Request completed";
+              const message =
+                details.length > 0
+                  ? `Request Complete: ${details.join(" | ")}`
+                  : "Request completed";
 
-							addNotification(message);
-						}
-						break;
+              addNotification(message);
+            }
+            break;
 
-					case "heartbeat":
-						// Update connection status without notification
-						break;
+          case "heartbeat":
+            // Update connection status without notification
+            break;
 
-					case "error":
-						addNotification(`Error: ${streamEvent.message}`);
-						break;
+          case "error":
+            addNotification(`Error: ${streamEvent.message}`);
+            break;
 
-					case "disconnect":
-						addNotification(`Disconnected: ${streamEvent.message}`);
-						break;
+          case "disconnect":
+            addNotification(`Disconnected: ${streamEvent.message}`);
+            break;
 
-					default:
-						if (import.meta.env.DEV) {
-							console.log("Unknown SSE event type:", streamEvent);
-						}
-				}
-			} catch (error) {
-				if (import.meta.env.DEV) {
-					console.error("Failed to parse stream event:", error);
-				}
-			}
-		};
+          default:
+            if (import.meta.env.DEV) {
+              console.log("Unknown SSE event type:", streamEvent);
+            }
+        }
+      } catch (error) {
+        if (import.meta.env.DEV) {
+          console.error("Failed to parse stream event:", error);
+        }
+      }
+    };
 
-		eventSource.onerror = (error) => {
-			if (import.meta.env.DEV) {
-				console.error("SSE connection error:", error);
-			}
-			addNotification("Connection error");
-		};
-	} catch (error) {
-		if (import.meta.env.DEV) {
-			console.error("Failed to setup SSE:", error);
-		}
-	}
+    eventSource.onerror = (error) => {
+      if (import.meta.env.DEV) {
+        console.error("SSE connection error:", error);
+      }
+      addNotification("Connection error");
+    };
+  } catch (error) {
+    if (import.meta.env.DEV) {
+      console.error("Failed to setup SSE:", error);
+    }
+  }
 }
 
 // Cleanup function
 function cleanup() {
-	if (eventSource) {
-		eventSource.close();
-		eventSource = null;
-	}
+  if (eventSource) {
+    eventSource.close();
+    eventSource = null;
+  }
 }
 
 // Load chart components dynamically (browser-only)
 async function loadChartComponents() {
-	if (browser) {
-		try {
-			const modules = await Promise.all([
-				import("$lib/components/charts/ModelUsageChart.svelte"),
-			]);
+  if (browser) {
+    try {
+      const modules = await Promise.all([
+        import("$lib/components/charts/ModelUsageChart.svelte"),
+      ]);
 
-			_chartComponents = {
-				ModelUsageChart: modules[0].default,
-			};
-		} catch (error) {
-			if (import.meta.env.DEV) {
-				console.error("Failed to load chart components:", error);
-			}
-		}
-	}
+      _chartComponents = {
+        ModelUsageChart: modules[0].default,
+      };
+    } catch (error) {
+      if (import.meta.env.DEV) {
+        console.error("Failed to load chart components:", error);
+      }
+    }
+  }
 }
 
 // Modern Svelte 5 lifecycle using onMount
 onMount(() => {
-	loadChartComponents();
-	loadDashboardData();
-	setupSSE();
+  loadChartComponents();
+  loadDashboardData();
+  setupSSE();
 
-	// Return cleanup function
-	return cleanup;
+  // Return cleanup function
+  return cleanup;
 });
 </script>
 

@@ -22,109 +22,109 @@ const _totalCount = $derived(entriesData?.total_count || 0);
 
 // Load entries data
 async function loadEntries() {
-	try {
-		_isLoading = true;
-		_error = null;
+  try {
+    _isLoading = true;
+    _error = null;
 
-		const params = {
-			limit: pageSize,
-			offset: (currentPage - 1) * pageSize,
-			order_by: orderBy,
-			order_desc: orderDesc,
-			service_type: serviceTypeFilter,
-		};
+    const params = {
+      limit: pageSize,
+      offset: (currentPage - 1) * pageSize,
+      order_by: orderBy,
+      order_desc: orderDesc,
+      service_type: serviceTypeFilter,
+    };
 
-		entriesData = await metricsApi.getEntries(params);
-	} catch (error) {
-		_error = error instanceof Error ? error.message : "Failed to load entries";
-		if (import.meta.env.DEV) {
-			console.error("Failed to load entries:", error);
-		}
-	} finally {
-		_isLoading = false;
-	}
+    entriesData = await metricsApi.getEntries(params);
+  } catch (error) {
+    _error = error instanceof Error ? error.message : "Failed to load entries";
+    if (import.meta.env.DEV) {
+      console.error("Failed to load entries:", error);
+    }
+  } finally {
+    _isLoading = false;
+  }
 }
 
 // Pagination handlers
 function _goToPage(page: number) {
-	currentPage = page;
-	loadEntries();
+  currentPage = page;
+  loadEntries();
 }
 
 function _nextPage() {
-	if (currentPage < _totalPages) {
-		currentPage++;
-		loadEntries();
-	}
+  if (currentPage < _totalPages) {
+    currentPage++;
+    loadEntries();
+  }
 }
 
 function _prevPage() {
-	if (currentPage > 1) {
-		currentPage--;
-		loadEntries();
-	}
+  if (currentPage > 1) {
+    currentPage--;
+    loadEntries();
+  }
 }
 
 // Sorting handlers
 function _changeSorting(column: string) {
-	if (orderBy === column) {
-		orderDesc = !orderDesc;
-	} else {
-		orderBy = column;
-		orderDesc = true;
-	}
-	currentPage = 1; // Reset to first page when sorting changes
-	loadEntries();
+  if (orderBy === column) {
+    orderDesc = !orderDesc;
+  } else {
+    orderBy = column;
+    orderDesc = true;
+  }
+  currentPage = 1; // Reset to first page when sorting changes
+  loadEntries();
 }
 
 // Format functions
 function _formatTimestamp(timestamp: string): string {
-	return new Date(timestamp).toLocaleString();
+  return new Date(timestamp).toLocaleString();
 }
 
 function _formatCost(cost_usd: number | null): string {
-	if (cost_usd === null || cost_usd === undefined) {
-		return "$0.0000";
-	}
-	return `$${cost_usd.toFixed(4)}`;
+  if (cost_usd === null || cost_usd === undefined) {
+    return "$0.0000";
+  }
+  return `$${cost_usd.toFixed(4)}`;
 }
 
 function _formatDuration(durationMs: number): string {
-	if (durationMs === null || durationMs === undefined) {
-		return "0ms";
-	}
-	if (durationMs < 1000) {
-		return `${durationMs.toFixed(0)}ms`;
-	}
-	return `${(durationMs / 1000).toFixed(2)}s`;
+  if (durationMs === null || durationMs === undefined) {
+    return "0ms";
+  }
+  if (durationMs < 1000) {
+    return `${durationMs.toFixed(0)}ms`;
+  }
+  return `${(durationMs / 1000).toFixed(2)}s`;
 }
 
 function _formatTokens(input: number, output: number): string {
-	const inputTokens = input || 0;
-	const outputTokens = output || 0;
-	const total = inputTokens + outputTokens;
-	return `${total.toLocaleString()} (${inputTokens.toLocaleString()}/${outputTokens.toLocaleString()})`;
+  const inputTokens = input || 0;
+  const outputTokens = output || 0;
+  const total = inputTokens + outputTokens;
+  return `${total.toLocaleString()} (${inputTokens.toLocaleString()}/${outputTokens.toLocaleString()})`;
 }
 
 function _formatStatusCode(statusCode: number): {
-	text: string;
-	color: string;
+  text: string;
+  color: string;
 } {
-	if (statusCode >= 200 && statusCode < 300) {
-		return { text: `${statusCode} Success`, color: "green" };
-	}
-	if (statusCode >= 400 && statusCode < 500) {
-		return { text: `${statusCode} Client Error`, color: "red" };
-	}
-	if (statusCode >= 500) {
-		return { text: `${statusCode} Server Error`, color: "red" };
-	}
-	return { text: `${statusCode}`, color: "gray" };
+  if (statusCode >= 200 && statusCode < 300) {
+    return { text: `${statusCode} Success`, color: "green" };
+  }
+  if (statusCode >= 400 && statusCode < 500) {
+    return { text: `${statusCode} Client Error`, color: "red" };
+  }
+  if (statusCode >= 500) {
+    return { text: `${statusCode} Server Error`, color: "red" };
+  }
+  return { text: `${statusCode}`, color: "gray" };
 }
 
 // Initialize on mount
 onMount(() => {
-	loadEntries();
+  loadEntries();
 });
 </script>
 
