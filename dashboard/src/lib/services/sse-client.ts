@@ -39,10 +39,7 @@ export class SSEMetricsClient {
 	 * Connect to the SSE stream
 	 */
 	connect(params: SSEConnectionParams = {}): void {
-		if (
-			this.isConnecting ||
-			this.eventSource?.readyState === EventSource.OPEN
-		) {
+		if (this.isConnecting || this.eventSource?.readyState === EventSource.OPEN) {
 			return;
 		}
 
@@ -59,9 +56,7 @@ export class SSEMetricsClient {
 			this.isConnecting = false;
 			const errorMsg =
 				error instanceof Error ? error.message : "Failed to create EventSource";
-			this.notifyErrorListeners(
-				new Error(`SSE connection failed: ${errorMsg}`),
-			);
+			this.notifyErrorListeners(new Error(`SSE connection failed: ${errorMsg}`));
 			this.scheduleReconnect(params);
 		}
 	}
@@ -172,7 +167,7 @@ export class SSEMetricsClient {
 		// Exponential backoff with jitter
 		this.reconnectDelay = Math.min(
 			this.reconnectDelay * 2 + Math.random() * 1000,
-			this.maxReconnectDelay,
+			this.maxReconnectDelay
 		);
 	}
 
@@ -193,9 +188,7 @@ export class SSEMetricsClient {
 		const searchParams = new URLSearchParams();
 
 		if (params.metric_types) {
-			params.metric_types.forEach((type) =>
-				searchParams.append("metric_types", type),
-			);
+			params.metric_types.forEach((type) => searchParams.append("metric_types", type));
 		}
 
 		if (params.user_id) {
@@ -208,7 +201,7 @@ export class SSEMetricsClient {
 
 		if (params.subscription_types) {
 			params.subscription_types.forEach((type) =>
-				searchParams.append("subscription_types", type),
+				searchParams.append("subscription_types", type)
 			);
 		}
 

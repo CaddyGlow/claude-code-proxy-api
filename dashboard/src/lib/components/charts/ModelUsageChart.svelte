@@ -14,15 +14,9 @@ function _formatNumber(num: number): string {
 
 interface Props {
 	modelData?: ModelUsageData[];
-	class?: string;
-	isFlashing?: boolean;
 }
 
-const {
-	modelData,
-	class: className = "",
-	isFlashing = false,
-}: Props = $props();
+const { modelData }: Props = $props();
 
 // Prepare chart data using $derived for reactivity
 const _chartData = $derived.by(() => {

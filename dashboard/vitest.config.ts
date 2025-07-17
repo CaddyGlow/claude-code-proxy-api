@@ -1,5 +1,5 @@
-import { defineConfig } from "vitest/config";
 import { sveltekit } from "@sveltejs/kit/vite";
+import { defineConfig } from "vitest/config";
 
 export default defineConfig({
 	plugins: [sveltekit()],
@@ -10,13 +10,7 @@ export default defineConfig({
 		include: ["src/**/*.{test,spec}.{js,ts}"],
 		exclude: ["node_modules", "build", "e2e/**/*"],
 		fakeTimers: {
-			toFake: [
-				"setTimeout",
-				"clearTimeout",
-				"setInterval",
-				"clearInterval",
-				"Date",
-			],
+			toFake: ["setTimeout", "clearTimeout", "setInterval", "clearInterval", "Date"],
 		},
 		coverage: {
 			provider: "v8",

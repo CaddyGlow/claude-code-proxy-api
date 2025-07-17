@@ -1,7 +1,7 @@
 <script lang="ts">
-import type { EntriesResponse } from "$lib/types/metrics";
-import { metricsApi } from "$lib/services/metrics-api";
 import { onMount } from "svelte";
+import { metricsApi } from "$lib/services/metrics-api";
+import type { EntriesResponse } from "$lib/types/metrics";
 
 // Modern Svelte 5 reactive state
 let entriesData = $state<EntriesResponse | null>(null);
@@ -10,10 +10,10 @@ let _error = $state<string | null>(null);
 
 // Pagination and sorting state
 let currentPage = $state(1);
-let pageSize = $state(50);
+const pageSize = $state(50);
 let orderBy = $state("timestamp");
 let orderDesc = $state(true);
-let serviceTypeFilter = $state("!access_log"); // Default: exclude access_log
+const serviceTypeFilter = $state("!access_log"); // Default: exclude access_log
 
 // Derived computed values
 const _entries = $derived(entriesData?.entries || []);

@@ -1,15 +1,15 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, screen } from "@testing-library/svelte";
 import { tick } from "svelte";
-import type { MetricsStreamEvent, AnalyticsResponse } from "$lib/types/metrics";
-import { createSSEMock, mockEventSource } from "../test-utils/mocks/sse";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { metricsApi } from "$lib/services/metrics-api";
+import type { AnalyticsResponse, MetricsStreamEvent } from "$lib/types/metrics";
 import {
+	cleanupFakeTimers,
 	flushPromises,
 	setupFakeTimers,
-	cleanupFakeTimers,
 } from "../test-utils/helpers/test-helpers";
+import { createSSEMock, mockEventSource } from "../test-utils/mocks/sse";
 import DashboardPage from "./+page.svelte";
-import { metricsApi } from "$lib/services/metrics-api";
 
 describe("SSE Integration Tests", () => {
 	let mockSSEConnection: ReturnType<typeof createSSEMock>;
@@ -150,9 +150,7 @@ describe("SSE Integration Tests", () => {
 
 		// Setup mock SSE connection
 		mockSSEConnection = createSSEMock("http://localhost:8000/metrics/stream");
-		(metricsApi.createSSEConnection as any).mockReturnValue(
-			mockSSEConnection as any,
-		);
+		(metricsApi.createSSEConnection as any).mockReturnValue(mockSSEConnection as any);
 	});
 
 	afterEach(() => {
@@ -251,7 +249,7 @@ describe("SSE Integration Tests", () => {
 
 			// Assert
 			expect(
-				screen.getByText("Connected: Client connected successfully"),
+				screen.getByText("Connected: Client connected successfully")
 			).toBeInTheDocument();
 		});
 
@@ -273,9 +271,7 @@ describe("SSE Integration Tests", () => {
 			await tick();
 
 			// Assert
-			expect(
-				screen.getByText("Error: Database connection failed"),
-			).toBeInTheDocument();
+			expect(screen.getByText("Error: Database connection failed")).toBeInTheDocument();
 		});
 
 		it("should handle SSE disconnect events and show notifications", async () => {
@@ -297,7 +293,7 @@ describe("SSE Integration Tests", () => {
 
 			// Assert
 			expect(
-				screen.getByText("Disconnected: Server shutting down"),
+				screen.getByText("Disconnected: Server shutting down")
 			).toBeInTheDocument();
 		});
 
@@ -307,9 +303,7 @@ describe("SSE Integration Tests", () => {
 			await flushPromises();
 
 			// Clear any existing notifications
-			const initialNotifications = screen.queryAllByText(
-				/Connected to live stream/,
-			);
+			const initialNotifications = screen.queryAllByText(/Connected to live stream/);
 			const initialCount = initialNotifications.length;
 
 			// Test heartbeat event
@@ -325,17 +319,13 @@ describe("SSE Integration Tests", () => {
 			await tick();
 
 			// Assert no new notifications were added
-			const finalNotifications = screen.queryAllByText(
-				/Connected to live stream/,
-			);
+			const finalNotifications = screen.queryAllByText(/Connected to live stream/);
 			expect(finalNotifications.length).toBe(initialCount);
 		});
 
 		it("should handle malformed SSE messages gracefully", async () => {
 			// Arrange
-			const consoleSpy = vi
-				.spyOn(console, "error")
-				.mockImplementation(() => {});
+			const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 			render(DashboardPage);
 			await flushPromises();
 
@@ -350,7 +340,7 @@ describe("SSE Integration Tests", () => {
 			// Assert error was logged (in development mode)
 			expect(consoleSpy).toHaveBeenCalledWith(
 				"Failed to parse stream event:",
-				expect.any(Error),
+				expect.any(Error)
 			);
 
 			// Cleanup
@@ -389,9 +379,7 @@ describe("SSE Integration Tests", () => {
 
 		it("should handle SSE setup errors gracefully", async () => {
 			// Arrange
-			const consoleSpy = vi
-				.spyOn(console, "error")
-				.mockImplementation(() => {});
+			const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
 			(metricsApi.createSSEConnection as any).mockImplementation(() => {
 				throw new Error("Failed to create SSE connection");
 			});
@@ -403,7 +391,7 @@ describe("SSE Integration Tests", () => {
 			// Assert error was logged
 			expect(consoleSpy).toHaveBeenCalledWith(
 				"Failed to setup SSE:",
-				expect.any(Error),
+				expect.any(Error)
 			);
 
 			// Cleanup
@@ -479,9 +467,7 @@ describe("SSE Integration Tests", () => {
 			expect(screen.getByText(/150000 tokens/)).toBeInTheDocument();
 			expect(screen.getByText(/\$25.0000/)).toBeInTheDocument();
 			expect(screen.getByText(/Top: claude-3-sonnet/)).toBeInTheDocument();
-			expect(
-				screen.getByText(/Services: anthropic, openai/),
-			).toBeInTheDocument();
+			expect(screen.getByText(/Services: anthropic, openai/)).toBeInTheDocument();
 		});
 
 		it("should handle analytics updates with missing data gracefully", async () => {
@@ -552,9 +538,7 @@ describe("SSE Integration Tests", () => {
 			await tick();
 
 			// Assert notification is present
-			expect(
-				screen.getByText("Connected: Test notification"),
-			).toBeInTheDocument();
+			expect(screen.getByText("Connected: Test notification")).toBeInTheDocument();
 
 			// Act - Advance time by 5 seconds
 			vi.advanceTimersByTime(5000);
@@ -563,7 +547,7 @@ describe("SSE Integration Tests", () => {
 
 			// Assert notification is removed
 			expect(
-				screen.queryByText("Connected: Test notification"),
+				screen.queryByText("Connected: Test notification")
 			).not.toBeInTheDocument();
 		});
 
@@ -590,15 +574,9 @@ describe("SSE Integration Tests", () => {
 			expect(allNotifications.length).toBeLessThanOrEqual(6); // 5 + 1 initial
 
 			// Assert latest notifications are kept
-			expect(
-				screen.getByText("Connected: Test notification 7"),
-			).toBeInTheDocument();
-			expect(
-				screen.getByText("Connected: Test notification 6"),
-			).toBeInTheDocument();
-			expect(
-				screen.getByText("Connected: Test notification 5"),
-			).toBeInTheDocument();
+			expect(screen.getByText("Connected: Test notification 7")).toBeInTheDocument();
+			expect(screen.getByText("Connected: Test notification 6")).toBeInTheDocument();
+			expect(screen.getByText("Connected: Test notification 5")).toBeInTheDocument();
 		});
 	});
 
@@ -609,8 +587,8 @@ describe("SSE Integration Tests", () => {
 			await flushPromises();
 
 			// Get initial connection count
-			const initialCallCount = (metricsApi.createSSEConnection as any).mock
-				.calls.length;
+			const initialCallCount = (metricsApi.createSSEConnection as any).mock.calls
+				.length;
 
 			// Act - Change time range filter
 			const timeRangeSelect = screen.getByDisplayValue("Last 24 Hours");
@@ -628,7 +606,7 @@ describe("SSE Integration Tests", () => {
 
 			// Assert SSE connection was not recreated
 			expect((metricsApi.createSSEConnection as any).mock.calls.length).toBe(
-				initialCallCount,
+				initialCallCount
 			);
 		});
 

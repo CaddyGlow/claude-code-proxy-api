@@ -1,15 +1,12 @@
 <script lang="ts">
-import type {
-	MetricCard as MetricCardType,
-	AnalyticsResponse,
-	MetricsStreamEvent,
-	ServiceType,
-} from "$lib/types/metrics";
-import { metricsApi } from "$lib/services/metrics-api";
 import { onMount } from "svelte";
 import { browser } from "$app/environment";
-import MetricCard from "$lib/components/MetricCard.svelte";
-import { isDevelopmentVersion, formatVersionForDisplay } from "$lib/version";
+import { metricsApi } from "$lib/services/metrics-api";
+import type {
+	AnalyticsResponse,
+	MetricCard as MetricCardType,
+	MetricsStreamEvent,
+} from "$lib/types/metrics";
 
 // Dynamic imports for browser-only chart components (to avoid SSR issues with LayerChart)
 let _chartComponents = $state<{
@@ -20,9 +17,7 @@ let _chartComponents = $state<{
 let analyticsData = $state<AnalyticsResponse | null>(null);
 let _isLoading = $state(true);
 let eventSource = $state<EventSource | null>(null);
-let notifications = $state<
-	Array<{ id: string; message: string; timestamp: Date }>
->([]);
+let notifications = $state<Array<{ id: string; message: string; timestamp: Date }>>([]);
 let _notificationCount = $state(0);
 
 // SSE event counters
@@ -38,12 +33,12 @@ let _isFlashing = $state(false);
 let _isCounterFlashing = $state(false);
 
 // Filter states for enhanced dashboard views
-let selectedServiceType = $state<string | null>(null);
-let selectedModel = $state<string | null>(null);
-let selectedTimeRange = $state<number>(24); // Hours
-let selectedStatusCode = $state<number | null>(null);
-let selectedStreaming = $state<boolean | null>(null);
-let showAdvancedFilters = $state<boolean>(false);
+const selectedServiceType = $state<string | null>(null);
+const selectedModel = $state<string | null>(null);
+const selectedTimeRange = $state<number>(24); // Hours
+const selectedStatusCode = $state<number | null>(null);
+const selectedStreaming = $state<boolean | null>(null);
+const _showAdvancedFilters = $state<boolean>(false);
 
 // Derived metrics for cards using new Analytics API
 const _dashboardMetrics = $derived<MetricCardType[]>([
@@ -130,12 +125,12 @@ const _serviceBreakdownData = $derived.by(() => {
 			total_cost_usd: data.total_cost_usd,
 			total_tokens_input: data.total_tokens_input,
 			total_tokens_output: data.total_tokens_output,
-		}),
+		})
 	);
 
 	const total = services.reduce(
 		(sum: number, service: any) => sum + service.request_count,
-		0,
+		0
 	);
 
 	return services.map((service: any) => ({
@@ -226,10 +221,7 @@ function playNotificationSound() {
 		oscillator.frequency.setValueAtTime(600, audioContext.currentTime + 0.1);
 
 		gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-		gainNode.gain.exponentialRampToValueAtTime(
-			0.01,
-			audioContext.currentTime + 0.2,
-		);
+		gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.2);
 
 		oscillator.start(audioContext.currentTime);
 		oscillator.stop(audioContext.currentTime + 0.2);
@@ -334,28 +326,26 @@ function setupSSE() {
 
 							// Add summary info
 							if (data.summary) {
-								notificationDetails.push(
-									`${data.summary.total_requests} requests`,
-								);
+								notificationDetails.push(`${data.summary.total_requests} requests`);
 
 								// Add success rate info
 								if (data.request_analytics?.success_rate) {
 									notificationDetails.push(
-										`${data.request_analytics.success_rate.toFixed(1)}% success`,
+										`${data.request_analytics.success_rate.toFixed(1)}% success`
 									);
 								}
 
 								// Add token info
 								if (data.token_analytics?.total_tokens > 0) {
 									notificationDetails.push(
-										`${data.token_analytics.total_tokens.toLocaleString()} tokens`,
+										`${data.token_analytics.total_tokens.toLocaleString()} tokens`
 									);
 								}
 
 								// Add cost info
 								if (data.summary.total_cost_usd > 0) {
 									notificationDetails.push(
-										`$${data.summary.total_cost_usd.toFixed(4)}`,
+										`$${data.summary.total_cost_usd.toFixed(4)}`
 									);
 								}
 							}
@@ -365,15 +355,12 @@ function setupSSE() {
 								data.service_type_breakdown &&
 								Object.keys(data.service_type_breakdown).length > 0
 							) {
-								const activeServices = Object.entries(
-									data.service_type_breakdown,
-								)
+								const activeServices = Object.entries(data.service_type_breakdown)
 									.filter(
-										([_, serviceData]: [string, any]) =>
-											serviceData.request_count > 0,
+										([_, serviceData]: [string, any]) => serviceData.request_count > 0
 									)
 									.map(([service_type, _]: [string, any]) =>
-										service_type.replace("_service", ""),
+										service_type.replace("_service", "")
 									)
 									.join(", ");
 								if (activeServices) {
@@ -401,13 +388,12 @@ function setupSSE() {
 							}
 							if (requestData.service_type) {
 								details.push(
-									`Service: ${requestData.service_type.replace("_service", "")}`,
+									`Service: ${requestData.service_type.replace("_service", "")}`
 								);
 							}
 							if (requestData.tokens_input || requestData.tokens_output) {
 								const totalTokens =
-									(requestData.tokens_input || 0) +
-									(requestData.tokens_output || 0);
+									(requestData.tokens_input || 0) + (requestData.tokens_output || 0);
 								details.push(`${totalTokens} tokens`);
 							}
 							if (requestData.cost_usd > 0) {
@@ -460,8 +446,7 @@ function setupSSE() {
 							// Add status code
 							if (requestData.status_code) {
 								const statusText =
-									requestData.status_code >= 200 &&
-									requestData.status_code < 300
+									requestData.status_code >= 200 && requestData.status_code < 300
 										? "✓"
 										: "✗";
 								details.push(`${statusText} ${requestData.status_code}`);
@@ -484,15 +469,14 @@ function setupSSE() {
 							// Add service type
 							if (requestData.service_type) {
 								details.push(
-									`Service: ${requestData.service_type.replace("_service", "")}`,
+									`Service: ${requestData.service_type.replace("_service", "")}`
 								);
 							}
 
 							// Add tokens
 							if (requestData.tokens_input || requestData.tokens_output) {
 								const totalTokens =
-									(requestData.tokens_input || 0) +
-									(requestData.tokens_output || 0);
+									(requestData.tokens_input || 0) + (requestData.tokens_output || 0);
 								details.push(`${totalTokens} tokens`);
 							}
 

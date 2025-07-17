@@ -1,4 +1,4 @@
-import { test, expect } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 
 test.describe("Dashboard E2E Tests", () => {
 	test("loads dashboard and displays key elements", async ({ page }) => {
@@ -64,10 +64,7 @@ test.describe("Dashboard E2E Tests", () => {
 		// Check that entries link exists
 		const entriesLink = page.getByRole("link", { name: "Database Entries" });
 		await expect(entriesLink).toBeVisible();
-		await expect(entriesLink).toHaveAttribute(
-			"href",
-			"/metrics/dashboard/entries",
-		);
+		await expect(entriesLink).toHaveAttribute("href", "/metrics/dashboard/entries");
 	});
 
 	test("shows advanced filters when toggled", async ({ page }) => {
@@ -105,14 +102,12 @@ test.describe("Dashboard E2E Tests", () => {
 
 		// Check service filter
 		const serviceInput = page.getByPlaceholder(
-			"e.g., anthropic_service,openai_service or !access_log",
+			"e.g., anthropic_service,openai_service or !access_log"
 		);
 		await expect(serviceInput).toBeVisible();
 
 		// Check model filter
-		const modelInput = page.getByPlaceholder(
-			"e.g., claude-3-5-sonnet-20241022",
-		);
+		const modelInput = page.getByPlaceholder("e.g., claude-3-5-sonnet-20241022");
 		await expect(modelInput).toBeVisible();
 	});
 });

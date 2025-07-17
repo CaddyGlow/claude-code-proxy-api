@@ -103,10 +103,7 @@ export class SSEMock implements MockEventSource {
 	}
 }
 
-export function createSSEMock(
-	url: string,
-	events: MetricsStreamEvent[] = [],
-): SSEMock {
+export function createSSEMock(url: string, events: MetricsStreamEvent[] = []): SSEMock {
 	const mock = new SSEMock(url);
 
 	// Auto-emit events after connection opens

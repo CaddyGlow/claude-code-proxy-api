@@ -1,10 +1,10 @@
+import { HttpResponse, http } from "msw";
 import { setupServer } from "msw/node";
-import { http, HttpResponse } from "msw";
 import type {
 	AnalyticsResponse,
-	StorageHealthResponse,
 	MetricsStatusResponse,
 	QueryResponse,
+	StorageHealthResponse,
 } from "$lib/types/metrics";
 
 const mockAnalyticsResponse: AnalyticsResponse = {
@@ -179,10 +179,7 @@ export const handlers = [
 
 	// Error scenarios for testing
 	http.get("/metrics/analytics/error", () => {
-		return HttpResponse.json(
-			{ detail: "Internal server error" },
-			{ status: 500 },
-		);
+		return HttpResponse.json({ detail: "Internal server error" }, { status: 500 });
 	}),
 
 	http.get("/metrics/analytics/network-error", () => {

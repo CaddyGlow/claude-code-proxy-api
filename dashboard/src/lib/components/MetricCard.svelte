@@ -7,11 +7,7 @@ interface Props {
 	isFlashing?: boolean;
 }
 
-const {
-	metric,
-	class: additionalClass = "",
-	isFlashing = false,
-}: Props = $props();
+const { metric, class: additionalClass = "", isFlashing = false }: Props = $props();
 
 // Helper functions
 function _getIconSVG(iconType: string): string {

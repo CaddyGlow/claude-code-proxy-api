@@ -7,7 +7,7 @@
  */
 
 import { readFileSync, writeFileSync } from "node:fs";
-import { join, dirname } from "node:path";
+import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -39,10 +39,10 @@ function extractVersionFromPython() {
 	} catch (error) {
 		if (error.code === "ENOENT") {
 			console.warn(
-				"Warning: _version.py not found. This is expected during development.",
+				"Warning: _version.py not found. This is expected during development."
 			);
 			console.warn(
-				'Run `uv run python -c "import ccproxy; print(ccproxy.__version__)"` to generate it.',
+				'Run `uv run python -c "import ccproxy; print(ccproxy.__version__)"` to generate it.'
 			);
 			return "0.0.1-dev";
 		}

@@ -211,7 +211,7 @@ export interface ChartDataPoint {
 
 export interface QueryRequest {
 	query: string;
-	params?: Record<string, any>;
+	params?: Record<string, unknown>;
 }
 
 export interface ErrorResponse {

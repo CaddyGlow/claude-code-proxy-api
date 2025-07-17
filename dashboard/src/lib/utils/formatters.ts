@@ -16,9 +16,9 @@ export function formatBytes(bytes: number, decimals = 2): string {
 /**
  * Debounce function that delays execution until after wait milliseconds
  */
-export function debounce<T extends (...args: any[]) => any>(
+export function debounce<T extends (...args: never[]) => unknown>(
 	func: T,
-	wait: number,
+	wait: number
 ): (...args: Parameters<T>) => void {
 	let timeout: ReturnType<typeof setTimeout> | null = null;
 
@@ -39,9 +39,9 @@ export function debounce<T extends (...args: any[]) => any>(
 /**
  * Throttle function that limits execution to once per wait milliseconds
  */
-export function throttle<T extends (...args: any[]) => any>(
+export function throttle<T extends (...args: never[]) => unknown>(
 	func: T,
-	wait: number,
+	wait: number
 ): (...args: Parameters<T>) => void {
 	let inThrottle = false;
 	let lastFunc: ReturnType<typeof setTimeout> | null = null;
@@ -63,7 +63,7 @@ export function throttle<T extends (...args: any[]) => any>(
 						lastRan = Date.now();
 					}
 				},
-				wait - (Date.now() - lastRan),
+				wait - (Date.now() - lastRan)
 			);
 		}
 	};
@@ -72,11 +72,7 @@ export function throttle<T extends (...args: any[]) => any>(
 /**
  * Format currency to string with proper decimals
  */
-export function formatCurrency(
-	amount: number,
-	currency = "USD",
-	decimals = 2,
-): string {
+export function formatCurrency(amount: number, currency = "USD", decimals = 2): string {
 	return new Intl.NumberFormat("en-US", {
 		style: "currency",
 		currency: currency,
@@ -152,7 +148,7 @@ export function formatRelativeTime(timestamp: string | Date): string {
  */
 export function formatDateTime(
 	timestamp: string | Date,
-	options?: Intl.DateTimeFormatOptions,
+	options?: Intl.DateTimeFormatOptions
 ): string {
 	const date = new Date(timestamp);
 	const defaultOptions: Intl.DateTimeFormatOptions = {
@@ -164,18 +160,13 @@ export function formatDateTime(
 		second: "2-digit",
 	};
 
-	return new Intl.DateTimeFormat("en-US", options || defaultOptions).format(
-		date,
-	);
+	return new Intl.DateTimeFormat("en-US", options || defaultOptions).format(date);
 }
 
 /**
  * Calculate percentage change between two values
  */
-export function calculatePercentageChange(
-	current: number,
-	previous: number,
-): number {
+export function calculatePercentageChange(current: number, previous: number): number {
 	if (previous === 0) {
 		return current === 0 ? 0 : 100;
 	}
@@ -187,7 +178,7 @@ export function calculatePercentageChange(
  */
 export function formatPercentageChange(
 	current: number,
-	previous: number,
+	previous: number
 ): {
 	text: string;
 	color: "green" | "red" | "gray";

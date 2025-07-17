@@ -1,5 +1,5 @@
-import { vi, expect } from "vitest";
 import { tick } from "svelte";
+import { expect, vi } from "vitest";
 
 /**
  * Wait for all pending promises to resolve
@@ -22,7 +22,7 @@ export function waitFor(ms: number): Promise<void> {
 export async function waitForCondition(
 	condition: () => boolean,
 	timeout = 1000,
-	interval = 50,
+	interval = 50
 ): Promise<void> {
 	const start = Date.now();
 
@@ -37,9 +37,7 @@ export async function waitForCondition(
 /**
  * Create a mock function that can be used to track calls
  */
-export function createMockFn<T extends (...args: any[]) => any>(
-	implementation?: T,
-): T {
+export function createMockFn<T extends (...args: any[]) => any>(implementation?: T): T {
 	return vi.fn(implementation) as unknown as T;
 }
 
@@ -112,23 +110,16 @@ export function createDelayedPromise<T>(value: T, delay: number): Promise<T> {
 /**
  * Helper to test error boundaries and error states
  */
-export function expectToThrow(
-	fn: () => void,
-	expectedError?: string | RegExp,
-): void {
+export function expectToThrow(fn: () => void, expectedError?: string | RegExp): void {
 	try {
 		fn();
 		throw new Error("Expected function to throw");
 	} catch (error) {
 		if (expectedError) {
 			if (typeof expectedError === "string") {
-				expect(error instanceof Error ? error.message : error).toBe(
-					expectedError,
-				);
+				expect(error instanceof Error ? error.message : error).toBe(expectedError);
 			} else {
-				expect(error instanceof Error ? error.message : error).toMatch(
-					expectedError,
-				);
+				expect(error instanceof Error ? error.message : error).toMatch(expectedError);
 			}
 		}
 	}
@@ -139,7 +130,7 @@ export function expectToThrow(
  */
 export async function expectToThrowAsync(
 	fn: () => Promise<void>,
-	expectedError?: string | RegExp,
+	expectedError?: string | RegExp
 ): Promise<void> {
 	try {
 		await fn();
@@ -147,13 +138,9 @@ export async function expectToThrowAsync(
 	} catch (error) {
 		if (expectedError) {
 			if (typeof expectedError === "string") {
-				expect(error instanceof Error ? error.message : error).toBe(
-					expectedError,
-				);
+				expect(error instanceof Error ? error.message : error).toBe(expectedError);
 			} else {
-				expect(error instanceof Error ? error.message : error).toMatch(
-					expectedError,
-				);
+				expect(error instanceof Error ? error.message : error).toMatch(expectedError);
 			}
 		}
 	}

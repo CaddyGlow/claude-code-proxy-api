@@ -1,11 +1,11 @@
 import type {
+	AnalyticsRequestParams,
 	AnalyticsResponse,
-	StorageHealthResponse,
+	EntriesRequestParams,
+	EntriesResponse,
 	MetricsStatusResponse,
 	QueryResponse,
-	AnalyticsRequestParams,
-	EntriesResponse,
-	EntriesRequestParams,
+	StorageHealthResponse,
 } from "$lib/types/metrics";
 import { MetricsApiError } from "$lib/types/metrics";
 
@@ -24,7 +24,7 @@ export class MetricsApiClient {
 	/**
 	 * Build query string from parameters
 	 */
-	public buildQueryString(params: Record<string, any>): string {
+	public buildQueryString(params: Record<string, unknown>): string {
 		const searchParams = new URLSearchParams();
 
 		Object.entries(params).forEach(([key, value]) => {
@@ -40,10 +40,7 @@ export class MetricsApiClient {
 	/**
 	 * Make HTTP request with timeout and error handling
 	 */
-	private async makeRequest(
-		url: string,
-		options: RequestInit = {},
-	): Promise<Response> {
+	private async makeRequest(url: string, options: RequestInit = {}): Promise<Response> {
 		const controller = new AbortController();
 		const timeoutId = setTimeout(() => controller.abort(), this.timeout);
 
@@ -63,7 +60,7 @@ export class MetricsApiClient {
 				throw new MetricsApiError(
 					`HTTP ${response.status}: ${response.statusText}`,
 					response.status,
-					response,
+					response
 				);
 			}
 
@@ -82,7 +79,7 @@ export class MetricsApiClient {
 			throw new MetricsApiError(
 				`Network error: ${error instanceof Error ? error.message : "Unknown error"}`,
 				0,
-				new Response(),
+				new Response()
 			);
 		}
 	}
@@ -91,7 +88,7 @@ export class MetricsApiClient {
 	 * Get analytics data
 	 */
 	public async getAnalytics(
-		params: AnalyticsRequestParams = {},
+		params: AnalyticsRequestParams = {}
 	): Promise<AnalyticsResponse> {
 		const queryString = this.buildQueryString(params);
 		const url = `${this.baseUrl}/analytics${queryString}`;
@@ -135,9 +132,7 @@ export class MetricsApiClient {
 	/**
 	 * Get database entries
 	 */
-	public async getEntries(
-		params: EntriesRequestParams = {},
-	): Promise<EntriesResponse> {
+	public async getEntries(params: EntriesRequestParams = {}): Promise<EntriesResponse> {
 		const queryString = this.buildQueryString(params);
 		const url = `${this.baseUrl}/entries${queryString}`;
 
